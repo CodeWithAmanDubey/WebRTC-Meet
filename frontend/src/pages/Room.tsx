@@ -480,6 +480,9 @@ export default function Room() {
     // Right panel tab state
     const [activeTab, setActiveTab] = useState<'participants' | 'chat'>('participants');
 
+    // Click-to-pin: which video is the main speaker ('local' or a peer id)
+    const [pinnedId, setPinnedId] = useState<string>('local');
+
     if (waitingStatus === 'idle') {
         return (
             <div className="h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
@@ -559,28 +562,44 @@ export default function Room() {
             <div className="flex flex-1 min-h-0 p-4 gap-4">
 
                 {/* ===== Left: Video Area ===== */}
-                <div className="flex-1 flex flex-col gap-3 min-w-0 animate-slideUp">
-                    {/* Speaker / Main Video */}
-                    <div className="flex-1 video-tile bg-white border border-gray-200/80 shadow-lg min-h-0">
-                        <video
-                            ref={localVideoRef}
-                            autoPlay
-                            playsInline
-                            muted
-                            className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
-                        />
-                        {isVideoOff && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                                <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg animate-float ${getAvatarGradient(user?.name || 'U')}`}>
-                                    {user?.name?.charAt(0).toUpperCase()}
+                <div className="flex-1 flex flex-col gap-3 min-w-0 animate-slideUp pb-16">
+                    {/* Main / Pinned Video */}
+                    <div className="flex-1 video-tile bg-white border border-gray-200/80 shadow-lg min-h-0 cursor-pointer" onClick={() => setPinnedId(pinnedId === 'local' ? 'local' : pinnedId)}>
+                        {pinnedId === 'local' ? (
+                            <>
+                                <video
+                                    ref={localVideoRef}
+                                    autoPlay
+                                    playsInline
+                                    muted
+                                    className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
+                                />
+                                {isVideoOff && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                        <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg animate-float ${getAvatarGradient(user?.name || 'U')}`}>
+                                            {user?.name?.charAt(0).toUpperCase()}
+                                        </div>
+                                    </div>
+                                )}
+                                <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
+                                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                                    {user?.name} (You)
+                                    {isMuted && <MicOff className="w-3.5 h-3.5 text-red-500" />}
                                 </div>
-                            </div>
+                            </>
+                        ) : (
+                            <>
+                                {peers.filter(p => p.id === pinnedId).map(peer => (
+                                    <React.Fragment key={peer.id}>
+                                        <RemoteVideo stream={peer.stream} name={peer.name} />
+                                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
+                                            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                                            {peer.name}
+                                        </div>
+                                    </React.Fragment>
+                                ))}
+                            </>
                         )}
-                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
-                            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-                            {user?.name} (You)
-                            {isMuted && <MicOff className="w-3.5 h-3.5 text-red-500" />}
-                        </div>
                         {peers.length === 0 && (
                             <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs text-gray-400 font-medium shadow border border-gray-100">
                                 Waiting for others to join...
@@ -591,8 +610,39 @@ export default function Room() {
                     {/* Thumbnail Strip */}
                     {peers.length > 0 && (
                         <div className="flex gap-3 overflow-x-auto pb-1 meeting-scroll animate-slideUp stagger-2">
-                            {peers.map((peer, i) => (
-                                <div key={peer.id} className={`video-tile bg-white border border-gray-200/80 shadow-md shrink-0 w-48 h-32 stagger-${i + 1}`}>
+                            {/* Local thumbnail (when not pinned) */}
+                            {pinnedId !== 'local' && (
+                                <div
+                                    className={`video-tile bg-white border-2 shadow-md shrink-0 w-48 h-32 cursor-pointer transition-all hover:scale-105 ${pinnedId === 'local' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200/80'}`}
+                                    onClick={() => setPinnedId('local')}
+                                >
+                                    <video
+                                        ref={localVideoRef}
+                                        autoPlay
+                                        playsInline
+                                        muted
+                                        className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
+                                    />
+                                    {isVideoOff && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${getAvatarGradient(user?.name || 'U')}`}>
+                                                {user?.name?.charAt(0).toUpperCase()}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-gray-600 font-medium shadow-sm flex items-center gap-1.5 border border-gray-200/50">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                                        You
+                                    </div>
+                                </div>
+                            )}
+                            {/* Remote thumbnails (skip the pinned one) */}
+                            {peers.filter(p => p.id !== pinnedId).map((peer, i) => (
+                                <div
+                                    key={peer.id}
+                                    className={`video-tile bg-white border-2 shadow-md shrink-0 w-48 h-32 cursor-pointer transition-all hover:scale-105 ${pinnedId === peer.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200/80'} stagger-${i + 1}`}
+                                    onClick={() => setPinnedId(peer.id)}
+                                >
                                     <RemoteVideo stream={peer.stream} name={peer.name} />
                                     <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-gray-600 font-medium shadow-sm flex items-center gap-1.5 border border-gray-200/50">
                                         <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
@@ -776,50 +826,52 @@ export default function Room() {
             )}
 
             {/* ===== Bottom Control Bar ===== */}
-            <footer className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl border border-gray-200/60 rounded-full shadow-2xl px-6 py-3 flex items-center gap-3 z-50 animate-slideUp stagger-4">
-                <button
-                    onClick={toggleMute}
-                    className={`control-btn ${isMuted ? 'bg-red-100 text-red-600 shadow-md shadow-red-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
-                    title={isMuted ? 'Unmute' : 'Mute'}
-                >
-                    {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                </button>
-                <button
-                    onClick={toggleVideo}
-                    className={`control-btn ${isVideoOff ? 'bg-red-100 text-red-600 shadow-md shadow-red-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
-                    title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
-                >
-                    {isVideoOff ? <VideoOff className="w-5 h-5" /> : <VideoIcon className="w-5 h-5" />}
-                </button>
-                <button
-                    onClick={toggleScreenShare}
-                    className={`control-btn hidden md:block ${isScreenSharing ? 'bg-indigo-100 text-indigo-600 shadow-md shadow-indigo-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
-                    title="Share Screen"
-                >
-                    <MonitorUp className="w-5 h-5" />
-                </button>
-
-                {/* Divider */}
-                <div className="w-px h-8 bg-gray-200 mx-1"></div>
-
-                <button
-                    onClick={handleLeave}
-                    className="control-btn bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-200/50 flex items-center gap-2 px-5"
-                    title="Leave Meeting"
-                >
-                    <PhoneOff className="w-5 h-5" />
-                    <span className="text-sm font-semibold hidden sm:inline">End</span>
-                </button>
-                {isHost && (
+            <footer className="fixed bottom-5 inset-x-0 z-50 flex justify-center pointer-events-none animate-slideUp stagger-4">
+                <div className="bg-white/90 backdrop-blur-xl border border-gray-200/60 rounded-full shadow-2xl px-6 py-3 flex items-center gap-3 pointer-events-auto">
                     <button
-                        onClick={handleEndMeeting}
-                        className="control-btn bg-red-700 hover:bg-red-800 text-white shadow-lg shadow-red-300/50 px-4 flex items-center gap-2"
-                        title="End Meeting for All"
+                        onClick={toggleMute}
+                        className={`control-btn ${isMuted ? 'bg-red-100 text-red-600 shadow-md shadow-red-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
+                        title={isMuted ? 'Unmute' : 'Mute'}
                     >
-                        <Power className="w-4 h-4" />
-                        <span className="text-xs font-semibold hidden sm:inline">End All</span>
+                        {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                     </button>
-                )}
+                    <button
+                        onClick={toggleVideo}
+                        className={`control-btn ${isVideoOff ? 'bg-red-100 text-red-600 shadow-md shadow-red-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
+                        title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
+                    >
+                        {isVideoOff ? <VideoOff className="w-5 h-5" /> : <VideoIcon className="w-5 h-5" />}
+                    </button>
+                    <button
+                        onClick={toggleScreenShare}
+                        className={`control-btn hidden md:block ${isScreenSharing ? 'bg-indigo-100 text-indigo-600 shadow-md shadow-indigo-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
+                        title="Share Screen"
+                    >
+                        <MonitorUp className="w-5 h-5" />
+                    </button>
+
+                    {/* Divider */}
+                    <div className="w-px h-8 bg-gray-200 mx-1"></div>
+
+                    <button
+                        onClick={handleLeave}
+                        className="control-btn bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-200/50 flex items-center gap-2 px-5"
+                        title="Leave Meeting"
+                    >
+                        <PhoneOff className="w-5 h-5" />
+                        <span className="text-sm font-semibold hidden sm:inline">End</span>
+                    </button>
+                    {isHost && (
+                        <button
+                            onClick={handleEndMeeting}
+                            className="control-btn bg-red-700 hover:bg-red-800 text-white shadow-lg shadow-red-300/50 px-4 flex items-center gap-2"
+                            title="End Meeting for All"
+                        >
+                            <Power className="w-4 h-4" />
+                            <span className="text-xs font-semibold hidden sm:inline">End All</span>
+                        </button>
+                    )}
+                </div>
             </footer>
         </div>
     );
