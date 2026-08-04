@@ -76,10 +76,11 @@ export const getMyMeetings = async (req: AuthRequest, res: Response) => {
 
         const rooms = await prisma.room.findMany({
             where: {
-                hostId: userId
+                hostId: userId,
+                scheduledFor: { not: null }
             },
             orderBy: {
-                createdAt: 'desc'
+                scheduledFor: 'asc' // Optional bonus: ordering by when the meeting is scheduled instead of created
             }
         });
 
