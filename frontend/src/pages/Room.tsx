@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle, Info, Copy } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -42,6 +42,7 @@ export default function Room() {
     const [waitingStatus, setWaitingStatus] = useState<'idle' | 'waiting' | 'accepted' | 'rejected'>('idle');
     const [pendingUsers, setPendingUsers] = useState<any[]>([]);
     const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+    const [showMeetingDetails, setShowMeetingDetails] = useState(false);
 
     // Chat states
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -471,15 +472,45 @@ export default function Room() {
 
     return (
         <div className="h-screen bg-gray-950 flex flex-col p-4">
-            <header className="flex justify-between items-center mb-4 px-2">
-                <div className="flex items-center gap-3">
-                    <div className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400">WebRTC Meet</div>
-                    <span className="bg-gray-800 text-gray-300 px-3 py-1 rounded-md text-sm font-mono">
-                        {roomId}
-                    </span>
+            <header className="flex justify-between items-center mb-4 px-2 relative z-40">
+                <div className="flex items-center gap-4">
+                    <div className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 font-sans tracking-tight hidden sm:block">WebRTC Meet</div>
+
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowMeetingDetails(!showMeetingDetails)}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${showMeetingDetails ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'}`}
+                        >
+                            <Info className="w-4 h-4" />
+                            <span className="hidden sm:inline">Meeting Details</span>
+                        </button>
+
+                        {showMeetingDetails && (
+                            <div className="absolute top-10 left-0 w-72 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2">
+                                <h3 className="text-sm font-semibold text-white mb-2">Joining Info</h3>
+                                <div className="bg-gray-950 p-2 rounded-lg flex items-center justify-between border border-gray-800 gap-3">
+                                    <code className="text-gray-300 text-xs font-mono truncate">{roomId}</code>
+                                    <button
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(roomId || '');
+                                            alert('Meeting link copied to clipboard!');
+                                        }}
+                                        className="text-gray-400 hover:text-white p-1 hover:bg-gray-800 rounded bg-gray-900 transition-colors shrink-0"
+                                        title="Copy Meeting ID"
+                                    >
+                                        <Copy className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+                                    Share this meeting ID with others you want in the meeting. They can enter it on the home page.
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div className="text-gray-500 text-sm">
-                    {totalParticipants} participant{totalParticipants > 1 ? 's' : ''}
+                <div className="text-gray-400 text-sm font-medium flex items-center gap-2 bg-gray-800/50 px-3 py-1.5 rounded-full border border-gray-800">
+                    <Users className="w-4 h-4" />
+                    {totalParticipants}
                 </div>
             </header>
 
