@@ -24,9 +24,10 @@ model Room {
   id        String    @id @default(uuid())
   name      String?
   host      User      @relation(fields: [hostId], references: [id])
-  hostId    String
-  createdAt DateTime  @default(now())
-  messages  Message[]
+  hostId       String
+  createdAt    DateTime  @default(now())
+  scheduledFor DateTime?
+  messages     Message[]
 }
 
 model Message {

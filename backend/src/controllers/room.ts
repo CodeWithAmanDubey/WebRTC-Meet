@@ -10,7 +10,7 @@ interface AuthRequest extends Request {
 
 export const createRoom = async (req: AuthRequest, res: Response) => {
     try {
-        const { name } = req.body;
+        const { name, scheduledFor } = req.body;
         const userId = req.userId;
 
         if (!userId) {
@@ -32,6 +32,7 @@ export const createRoom = async (req: AuthRequest, res: Response) => {
                 id: roomId,
                 name: name || 'Untitled Room',
                 hostId: userId,
+                scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
             }
         });
 
@@ -62,5 +63,29 @@ export const getRoom = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Server error fetching room' });
+    }
+};
+
+export const getMyMeetings = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.userId;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const rooms = await prisma.room.findMany({
+            where: {
+                hostId: userId
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        res.json({ rooms });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error fetching your meetings' });
     }
 };
