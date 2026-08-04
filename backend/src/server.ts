@@ -23,7 +23,7 @@ const allowedOrigins: string[] = [
 
 app.use(cors({
   origin: allowedOrigins.length > 0 ? allowedOrigins : '*',
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
 app.use(express.json());
