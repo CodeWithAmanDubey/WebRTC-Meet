@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, Video, Calendar, Clock, Copy, Plus, X } from 'lucide-react';
@@ -14,6 +14,77 @@ export default function Home() {
     const [showScheduleModal, setShowScheduleModal] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
+
+    // Notification states
+    const notifiedRef = useRef<Record<string, boolean>>({});
+    const [now, setNow] = useState(new Date());
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setNow(new Date());
+        }, 10000); // Check every 10 seconds for UI updates
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!myMeetings.length) return;
+
+        const thresholds = [15, 5, 1];
+
+        myMeetings.forEach(meeting => {
+            if (meeting.scheduledFor) {
+                const scheduledTime = new Date(meeting.scheduledFor);
+                const diffMs = scheduledTime.getTime() - now.getTime();
+
+                if (diffMs > 0) {
+                    const diffMinutes = Math.floor(diffMs / 60000);
+
+                    thresholds.forEach(threshold => {
+                        // We check within a window because we check every 10 secs
+                        if (diffMinutes === threshold) {
+                            const key = `${meeting.id}-${threshold}`;
+                            if (!notifiedRef.current[key]) {
+                                notifiedRef.current[key] = true;
+                                if ('Notification' in window && Notification.permission === 'granted') {
+                                    new Notification("Meeting starting soon!", {
+                                        body: `Your meeting "${meeting.name || 'Untitled'}" is starting in ${diffMinutes === 1 ? '1 minute' : diffMinutes + ' minutes'}!`,
+                                    });
+                                } else {
+                                    // Fallback to basic alert if permissions blocked 
+                                    // (not ideal UX, but fulfills the popup requirement).
+                                    alert(`Reminder: Your meeting "${meeting.name || 'Untitled'}" is starting in ${diffMinutes === 1 ? '1 minute' : diffMinutes + ' minutes'}!`);
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    }, [now, myMeetings]);
+
+    const formatRelativeTime = (dateString: string) => {
+        const scheduledTime = new Date(dateString);
+        const diffMs = scheduledTime.getTime() - now.getTime();
+
+        if (diffMs < 0) return 'Already started';
+
+        const diffMins = Math.floor(diffMs / 60000);
+        if (diffMins < 60) return `in ${diffMins} min`;
+
+        const diffHours = Math.floor(diffMins / 60);
+        const remMins = diffMins % 60;
+
+        if (diffHours < 24) return `in ${diffHours} h ${remMins} min`;
+
+        const diffDays = Math.floor(diffHours / 24);
+        return `in ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+    }
 
     useEffect(() => {
         if (token) {
@@ -173,7 +244,7 @@ export default function Home() {
                                     <div>
                                         <h3 className="font-semibold text-white truncate max-w-[200px]">{meeting.name || 'Untitled Room'}</h3>
                                         {meeting.scheduledFor ? (
-                                            <p className="text-sm text-indigo-400 font-medium">
+                                            <p className="text-sm text-indigo-400 font-medium flex items-center gap-2 mt-0.5">
                                                 {new Date(meeting.scheduledFor).toLocaleString(undefined, {
                                                     weekday: 'short',
                                                     month: 'short',
@@ -181,6 +252,9 @@ export default function Home() {
                                                     hour: '2-digit',
                                                     minute: '2-digit'
                                                 })}
+                                                <span className="text-xs bg-indigo-500/20 px-2 py-0.5 rounded-full text-indigo-300">
+                                                    {formatRelativeTime(meeting.scheduledFor)}
+                                                </span>
                                             </p>
                                         ) : (
                                             <p className="text-sm text-green-400 font-medium">Instant Meeting</p>
