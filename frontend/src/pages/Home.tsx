@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Video, Calendar, Clock, Copy, Plus, X } from 'lucide-react';
+import { LogOut, Video, Calendar, Clock, Copy, Plus, X, Trash2 } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 export default function Home() {
@@ -164,6 +164,24 @@ export default function Home() {
         alert('Meeting ID copied to clipboard');
     };
 
+    const handleDeleteRoom = async (meetingId: string) => {
+        if (!confirm('Are you sure you want to delete this scheduled meeting?')) return;
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/rooms/${meetingId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                fetchMyMeetings();
+            } else {
+                console.error('Failed to delete room');
+                alert('Failed to delete meeting. Please try again.');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center text-white p-4 relative overflow-hidden">
             <div className="absolute top-4 right-4 flex items-center gap-4 z-20">
@@ -270,6 +288,13 @@ export default function Home() {
                                             title="Copy Code"
                                         >
                                             <Copy className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteRoom(meeting.id)}
+                                            className="p-2.5 bg-red-900/40 hover:bg-red-600 border border-red-800/50 text-red-300 hover:text-white rounded-lg transition-colors"
+                                            title="Delete Meeting"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => navigate(`/room/${meeting.id}`)}

@@ -90,3 +90,40 @@ export const getMyMeetings = async (req: AuthRequest, res: Response) => {
         res.status(500).json({ error: 'Server error fetching your meetings' });
     }
 };
+
+export const deleteRoom = async (req: AuthRequest, res: Response) => {
+    try {
+        const id = req.params.id as string;
+        const userId = req.userId;
+
+        if (!userId) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+
+        const room = await prisma.room.findUnique({
+            where: { id }
+        });
+
+        if (!room) {
+            return res.status(404).json({ error: 'Room not found' });
+        }
+
+        if (room.hostId !== userId) {
+            return res.status(403).json({ error: 'Forbidden: You are not the host of this room' });
+        }
+
+        // Delete all messages associated with the room first due to foreign key constraints
+        await prisma.message.deleteMany({
+            where: { roomId: id }
+        });
+
+        await prisma.room.delete({
+            where: { id }
+        });
+
+        res.json({ message: 'Room deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Server error deleting room' });
+    }
+};
