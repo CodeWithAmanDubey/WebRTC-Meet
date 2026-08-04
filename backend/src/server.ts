@@ -111,6 +111,26 @@ io.on('connection', (socket) => {
     io.to(targetSocketId).emit('force-video-off');
   });
 
+  socket.on('end-meeting', async ({ roomId }) => {
+    try {
+      if (roomHosts[roomId] === socket.id) {
+        // Emit to all users in the room to end their session
+        socket.to(roomId).emit('meeting-ended');
+
+        // Clean up database 
+        await prisma.message.deleteMany({ where: { roomId } });
+        await prisma.room.delete({ where: { id: roomId } });
+
+        // Clean up in-memory states
+        delete roomHosts[roomId];
+        delete waitingUsers[roomId];
+        delete roomUsers[roomId];
+      }
+    } catch (err) {
+      console.error('Error ending meeting:', err);
+    }
+  });
+
   socket.on('join-room', ({ roomId, userId, name }) => {
     socket.join(roomId);
 

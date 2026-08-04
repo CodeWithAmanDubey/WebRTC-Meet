@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle, Info, Copy, X } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle, Info, Copy, X, Power } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -284,6 +284,11 @@ export default function Room() {
             });
             socket.on('join-rejected', () => setWaitingStatus('rejected'));
 
+            socket.on('meeting-ended', () => {
+                alert('The host has ended this meeting for all participants.');
+                navigate('/');
+            });
+
             // Host Control Listeners
             socket.on('force-mute', () => {
                 if (localStreamRef.current) {
@@ -348,6 +353,13 @@ export default function Room() {
 
     const handleLeave = () => {
         navigate('/');
+    };
+
+    const handleEndMeeting = () => {
+        if (window.confirm("Are you sure you want to end this meeting for everyone? The meeting code will permanently expire.")) {
+            socketRef.current?.emit('end-meeting', { roomId });
+            navigate('/');
+        }
     };
 
     // Phase 11: Host Control Actions
@@ -715,9 +727,19 @@ export default function Room() {
                 <button
                     onClick={handleLeave}
                     className="p-4 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-[0_0_15px_rgba(220,38,38,0.5)] ml-4"
+                    title="Leave Meeting"
                 >
                     <PhoneOff className="w-5 h-5" />
                 </button>
+                {isHost && (
+                    <button
+                        onClick={handleEndMeeting}
+                        className="p-4 rounded-full bg-red-800 hover:bg-red-900 text-white transition-all shadow-[0_0_15px_rgba(153,27,27,0.5)] ml-2"
+                        title="End Meeting for All"
+                    >
+                        <Power className="w-5 h-5" />
+                    </button>
+                )}
             </footer>
         </div>
     );
