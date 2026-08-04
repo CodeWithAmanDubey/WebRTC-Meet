@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -36,6 +36,12 @@ export default function Room() {
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
     const [peers, setPeers] = useState<PeerData[]>([]);
+
+    // Phase 11: Host Controls & Waiting Room states
+    const [isHost, setIsHost] = useState(false);
+    const [waitingStatus, setWaitingStatus] = useState<'idle' | 'waiting' | 'accepted' | 'rejected'>('idle');
+    const [pendingUsers, setPendingUsers] = useState<any[]>([]);
+    const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
 
     // Chat states
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -254,9 +260,41 @@ export default function Room() {
                 setPeers(prev => prev.filter(p => p.id !== socketId));
             });
 
-            // 3. NOW join the room (after all handlers are set up)
-            socket.emit('join-room', { roomId, userId: user?.id, name: user?.name });
-            console.log(`[Signal] Joined room ${roomId} as ${user?.name}`);
+            // Phase 11: Listeners for Host and Waiting Room
+            socket.on('waiting-for-host', () => setWaitingStatus('waiting'));
+            socket.on('join-request', (newUser) => setPendingUsers(prev => [...prev, newUser]));
+            socket.on('pending-requests', (users) => setPendingUsers(users));
+            socket.on('join-accepted', ({ isHost: hostStatus }) => {
+                setIsHost(hostStatus);
+                setWaitingStatus('accepted');
+                // Proceed with normal WebRTC join flow
+                socket.emit('join-room', { roomId, userId: user?.id, name: user?.name });
+                console.log(`[Signal] Joined room ${roomId} as ${user?.name} (Host: ${hostStatus})`);
+            });
+            socket.on('join-rejected', () => setWaitingStatus('rejected'));
+
+            // Host Control Listeners
+            socket.on('force-mute', () => {
+                if (localStreamRef.current) {
+                    const audioTrack = localStreamRef.current.getAudioTracks()[0];
+                    if (audioTrack) {
+                        audioTrack.enabled = false;
+                        setIsMuted(true);
+                    }
+                }
+            });
+            socket.on('force-video-off', () => {
+                if (localStreamRef.current) {
+                    const videoTrack = localStreamRef.current.getVideoTracks()[0];
+                    if (videoTrack) {
+                        videoTrack.enabled = false;
+                        setIsVideoOff(true);
+                    }
+                }
+            });
+
+            // 3. Instead of joining immediately, request to join
+            socket.emit('request-join', { roomId, userId: user?.id, name: user?.name });
         };
 
         init();
@@ -292,6 +330,25 @@ export default function Room() {
 
     const handleLeave = () => {
         navigate('/');
+    };
+
+    // Phase 11: Host Control Actions
+    const admitUser = (targetSocketId: string) => {
+        socketRef.current?.emit('accept-join', { roomId, targetSocketId });
+        setPendingUsers(prev => prev.filter(u => u.socketId !== targetSocketId));
+    };
+
+    const denyUser = (targetSocketId: string) => {
+        socketRef.current?.emit('reject-join', { roomId, targetSocketId });
+        setPendingUsers(prev => prev.filter(u => u.socketId !== targetSocketId));
+    };
+
+    const handleForceMute = (targetSocketId: string) => {
+        socketRef.current?.emit('force-mute', { targetSocketId });
+    };
+
+    const handleForceVideoOff = (targetSocketId: string) => {
+        socketRef.current?.emit('force-video-off', { targetSocketId });
     };
 
     const sendMessage = (e: React.FormEvent) => {
@@ -373,6 +430,28 @@ export default function Room() {
         }
     };
 
+    if (waitingStatus === 'idle') {
+        return <div className="h-screen bg-gray-950 flex items-center justify-center text-white">Connecting to secure room...</div>;
+    }
+
+    if (waitingStatus === 'waiting') {
+        return (
+            <div className="h-screen bg-gray-950 flex items-center justify-center text-white flex-col gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+                <h2 className="text-xl font-semibold">Waiting for the host to let you in...</h2>
+            </div>
+        );
+    }
+
+    if (waitingStatus === 'rejected') {
+        return (
+            <div className="h-screen bg-gray-950 flex flex-col items-center justify-center text-white gap-6">
+                <h2 className="text-2xl font-bold text-red-500">The host declined your request to join.</h2>
+                <button onClick={() => navigate('/')} className="px-6 py-2 bg-indigo-600 rounded-md hover:bg-indigo-700">Return Home</button>
+            </div>
+        );
+    }
+
     // Calculate grid columns based on participant count
     const totalParticipants = 1 + peers.length;
     const gridCols = totalParticipants <= 1 ? 'grid-cols-1' :
@@ -428,6 +507,57 @@ export default function Room() {
                     ))}
                 </main>
 
+                {/* Participants Sidebar (Host Only) */}
+                {isHost && isParticipantsOpen && (
+                    <aside className="w-80 shrink-0 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl flex flex-col overflow-hidden z-10 hidden md:flex">
+                        <div className="p-4 border-b border-gray-800 bg-gray-900/50">
+                            <h2 className="font-semibold text-white">Participants & Waitlist</h2>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-6 flex flex-col">
+                            {/* Pending Users */}
+                            {pendingUsers.length > 0 && (
+                                <div>
+                                    <h3 className="text-sm text-gray-400 font-semibold mb-3 uppercase">Waiting ({pendingUsers.length})</h3>
+                                    <div className="space-y-3">
+                                        {pendingUsers.map(u => (
+                                            <div key={u.socketId} className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-yellow-500/30">
+                                                <span className="text-sm font-medium text-white break-all pr-2">{u.name}</span>
+                                                <div className="flex gap-2 shrink-0">
+                                                    <button onClick={() => admitUser(u.socketId)} className="text-green-400 hover:text-green-300 transition-colors bg-green-400/10 p-1.5 rounded-md"><CheckCircle className="w-4 h-4" /></button>
+                                                    <button onClick={() => denyUser(u.socketId)} className="text-red-400 hover:text-red-300 transition-colors bg-red-400/10 p-1.5 rounded-md"><XCircle className="w-4 h-4" /></button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Active Users */}
+                            <div>
+                                <h3 className="text-sm text-gray-400 font-semibold mb-3 uppercase">In Meeting ({peers.length + 1})</h3>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between text-gray-300 text-sm">
+                                        <span>{user?.name} (Host, You)</span>
+                                    </div>
+                                    {peers.map(peer => (
+                                        <div key={peer.id} className="flex items-center justify-between text-gray-300 text-sm">
+                                            <span className="truncate pr-2">{peer.name}</span>
+                                            <div className="flex gap-2 shrink-0">
+                                                <button onClick={() => handleForceMute(peer.id)} title="Force Mute" className="p-1 hover:bg-gray-800 rounded-md text-red-400 transition-colors">
+                                                    <MicOff className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => handleForceVideoOff(peer.id)} title="Stop Video" className="p-1 hover:bg-gray-800 rounded-md text-red-400 transition-colors">
+                                                    <VideoOff className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                )}
+
                 {/* Chat Sidebar */}
                 {isChatOpen && (
                     <aside className="w-80 shrink-0 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl flex flex-col overflow-hidden z-10 hidden md:flex">
@@ -480,6 +610,19 @@ export default function Room() {
                 >
                     <MonitorUp className="w-5 h-5" />
                 </button>
+                {isHost && (
+                    <button
+                        onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}
+                        className={`p-4 rounded-full transition-all flex items-center justify-center relative shadow-lg hidden md:flex ${isParticipantsOpen ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
+                    >
+                        <Users className="w-5 h-5" />
+                        {pendingUsers.length > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full z-10 shadow-md min-w-[20px] text-center shrink-0">
+                                {pendingUsers.length}
+                            </span>
+                        )}
+                    </button>
+                )}
                 <button
                     onClick={() => setIsChatOpen(!isChatOpen)}
                     className={`p-4 rounded-full transition-all shadow-lg hidden md:block ${isChatOpen ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}

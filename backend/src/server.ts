@@ -3,12 +3,14 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
 
 import authRoutes from './routes/auth';
 import roomRoutes from './routes/room';
 
 dotenv.config();
 
+const prisma = new PrismaClient();
 const app = express();
 const port = process.env.PORT || 8000;
 
@@ -45,9 +47,69 @@ app.get('/api/health', (req, res) => {
 
 // Mapping of socket IDs to user information
 const roomUsers: Record<string, any[]> = {};
+const waitingUsers: Record<string, any[]> = {};
+const roomHosts: Record<string, string> = {}; // roomId -> socketId
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
+
+  // Phase 11: Host Controls & Waiting Room
+  socket.on('request-join', async ({ roomId, userId, name }) => {
+    try {
+      const room = await prisma.room.findUnique({ where: { id: roomId } });
+      const isHost = room?.hostId === userId;
+      const userObj = { socketId: socket.id, userId, name };
+
+      if (isHost) {
+        roomHosts[roomId] = socket.id;
+        socket.emit('join-accepted', { isHost: true });
+
+        // Notify host about any currently waiting users
+        if (waitingUsers[roomId] && waitingUsers[roomId].length > 0) {
+          socket.emit('pending-requests', waitingUsers[roomId]);
+        }
+      } else {
+        if (!waitingUsers[roomId]) waitingUsers[roomId] = [];
+        waitingUsers[roomId].push(userObj);
+
+        socket.emit('waiting-for-host');
+
+        const hostSocketId = roomHosts[roomId];
+        if (hostSocketId) {
+          io.to(hostSocketId).emit('join-request', userObj);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      socket.emit('join-rejected');
+    }
+  });
+
+  socket.on('accept-join', ({ roomId, targetSocketId }) => {
+    if (roomHosts[roomId] === socket.id) {
+      if (waitingUsers[roomId]) {
+        waitingUsers[roomId] = waitingUsers[roomId].filter(u => u.socketId !== targetSocketId);
+      }
+      io.to(targetSocketId).emit('join-accepted', { isHost: false });
+    }
+  });
+
+  socket.on('reject-join', ({ roomId, targetSocketId }) => {
+    if (roomHosts[roomId] === socket.id) {
+      if (waitingUsers[roomId]) {
+        waitingUsers[roomId] = waitingUsers[roomId].filter(u => u.socketId !== targetSocketId);
+      }
+      io.to(targetSocketId).emit('join-rejected');
+    }
+  });
+
+  socket.on('force-mute', ({ targetSocketId }) => {
+    io.to(targetSocketId).emit('force-mute');
+  });
+
+  socket.on('force-video-off', ({ targetSocketId }) => {
+    io.to(targetSocketId).emit('force-video-off');
+  });
 
   socket.on('join-room', ({ roomId, userId, name }) => {
     socket.join(roomId);
@@ -102,11 +164,22 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
-      roomUsers[roomId] = roomUsers[roomId].filter(u => u.socketId !== socket.id);
-      socket.to(roomId).emit('user-left', socket.id);
-      if (roomUsers[roomId].length === 0) {
-        delete roomUsers[roomId];
+      if (roomUsers[roomId]) {
+        roomUsers[roomId] = roomUsers[roomId].filter(u => u.socketId !== socket.id);
+        socket.to(roomId).emit('user-left', socket.id);
+        if (roomUsers[roomId].length === 0) {
+          delete roomUsers[roomId];
+        }
       }
+
+      if (waitingUsers[roomId]) {
+        waitingUsers[roomId] = waitingUsers[roomId].filter(u => u.socketId !== socket.id);
+      }
+
+      if (roomHosts[roomId] === socket.id) {
+        delete roomHosts[roomId];
+      }
+
       console.log('User disconnected:', socket.id);
     });
   });
