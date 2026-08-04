@@ -650,13 +650,25 @@ export default function Room() {
             </div>
 
             {toastMessage && (
-                <div className="fixed bottom-24 right-4 bg-gray-900 border border-gray-800 rounded-lg shadow-2xl p-4 z-50 animate-in slide-in-from-right-4 fade-in max-w-xs flex items-start gap-3">
+                <div
+                    onClick={() => {
+                        setIsChatOpen(true);
+                        setToastMessage(null);
+                    }}
+                    className="fixed bottom-24 right-4 bg-gray-900 border border-gray-800 rounded-lg shadow-xl p-4 z-50 animate-in slide-in-from-right-4 fade-in max-w-xs flex items-start gap-3 cursor-pointer hover:bg-gray-800 transition-all border-l-4 border-l-indigo-500"
+                >
                     <MessageSquare className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
                     <div className="flex flex-col overflow-hidden flex-1">
                         <span className="text-sm font-semibold text-white truncate">{toastMessage.sender}</span>
                         <span className="text-sm text-gray-300 truncate">{toastMessage.text}</span>
                     </div>
-                    <button onClick={() => setToastMessage(null)} className="text-gray-500 hover:text-white shrink-0">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setToastMessage(null);
+                        }}
+                        className="text-gray-500 hover:text-white shrink-0"
+                    >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
