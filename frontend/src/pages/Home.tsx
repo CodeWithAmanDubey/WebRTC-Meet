@@ -14,6 +14,7 @@ export default function Home() {
     const [showScheduleModal, setShowScheduleModal] = useState(false);
     const [scheduleDate, setScheduleDate] = useState('');
     const [scheduleTime, setScheduleTime] = useState('');
+    const [scheduleName, setScheduleName] = useState('');
 
     // Notification states
     const notifiedRef = useRef<Record<string, boolean>>({});
@@ -137,10 +138,11 @@ export default function Home() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ name: `${user?.name}'s Scheduled Meeting`, scheduledFor })
+                body: JSON.stringify({ name: (scheduleName.trim() || `${user?.name}'s Scheduled Meeting`), scheduledFor })
             });
             if (res.ok) {
                 setShowScheduleModal(false);
+                setScheduleName('');
                 setScheduleDate('');
                 setScheduleTime('');
                 fetchMyMeetings();
@@ -298,6 +300,16 @@ export default function Home() {
                         </div>
 
                         <form onSubmit={handleScheduleSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1">Meeting Topic</label>
+                                <input
+                                    type="text"
+                                    placeholder={`${user?.name}'s Scheduled Meeting`}
+                                    value={scheduleName}
+                                    onChange={(e) => setScheduleName(e.target.value)}
+                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 text-white placeholder-gray-500"
+                                />
+                            </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
                                 <input
