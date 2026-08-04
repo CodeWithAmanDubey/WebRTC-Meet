@@ -409,6 +409,10 @@ export default function Room() {
     const toggleScreenShare = async () => {
         if (!isScreenSharing) {
             try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                    alert("Screen sharing is not natively supported by your current browser or mobile device. Please use a desktop web browser to share your screen.");
+                    return;
+                }
                 const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                 const screenTrack = screenStream.getVideoTracks()[0];
 
@@ -613,7 +617,7 @@ export default function Room() {
                 </button>
                 <button
                     onClick={toggleScreenShare}
-                    className={`p-4 rounded-full transition-all shadow-lg ${isScreenSharing ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
+                    className={`p-4 rounded-full transition-all shadow-lg hidden md:block ${isScreenSharing ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
                 >
                     <MonitorUp className="w-5 h-5" />
                 </button>
