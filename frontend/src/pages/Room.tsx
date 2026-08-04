@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle, Info, Copy, X, Power } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle, Copy, X, Power } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -470,82 +470,98 @@ export default function Room() {
         }
     };
 
+    // Helper to get avatar gradient class based on name
+    const getAvatarGradient = (name: string) => {
+        const gradients = ['avatar-gradient-1', 'avatar-gradient-2', 'avatar-gradient-3', 'avatar-gradient-4', 'avatar-gradient-5'];
+        const idx = name.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % gradients.length;
+        return gradients[idx];
+    };
+
+    // Right panel tab state
+    const [activeTab, setActiveTab] = useState<'participants' | 'chat'>('participants');
+
     if (waitingStatus === 'idle') {
-        return <div className="h-screen bg-gray-950 flex items-center justify-center text-white">Connecting to secure room...</div>;
+        return (
+            <div className="h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4 animate-fadeIn">
+                    <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div>
+                    <p className="text-gray-600 font-medium text-lg">Connecting to secure room...</p>
+                </div>
+            </div>
+        );
     }
 
     if (waitingStatus === 'waiting') {
         return (
-            <div className="h-screen bg-gray-950 flex items-center justify-center text-white flex-col gap-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-                <h2 className="text-xl font-semibold">Waiting for the host to let you in...</h2>
+            <div className="h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-6 animate-slideUp bg-white p-10 rounded-3xl shadow-xl border border-gray-100">
+                    <div className="w-16 h-16 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div>
+                    <h2 className="text-xl font-semibold text-gray-800">Waiting for the host to let you in...</h2>
+                    <p className="text-gray-400 text-sm">Please hold on, you'll be admitted shortly.</p>
+                </div>
             </div>
         );
     }
 
     if (waitingStatus === 'rejected') {
         return (
-            <div className="h-screen bg-gray-950 flex flex-col items-center justify-center text-white gap-6">
-                <h2 className="text-2xl font-bold text-red-500">The host declined your request to join.</h2>
-                <button onClick={() => navigate('/')} className="px-6 py-2 bg-indigo-600 rounded-md hover:bg-indigo-700">Return Home</button>
+            <div className="h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex flex-col items-center justify-center gap-6">
+                <div className="animate-scaleIn bg-white p-10 rounded-3xl shadow-xl border border-gray-100 flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center">
+                        <XCircle className="w-8 h-8 text-red-500" />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800">The host declined your request to join.</h2>
+                    <button onClick={() => navigate('/')} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-medium shadow-lg shadow-indigo-200">
+                        Return Home
+                    </button>
+                </div>
             </div>
         );
     }
 
     // Calculate grid columns based on participant count
     const totalParticipants = 1 + peers.length;
-    const gridCols = totalParticipants <= 1 ? 'grid-cols-1' :
-        totalParticipants <= 4 ? 'grid-cols-2' :
-            'grid-cols-3';
 
     return (
-        <div className="h-screen bg-gray-950 flex flex-col p-4">
-            <header className="flex justify-between items-center mb-4 px-2 relative z-40">
+        <div className="h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-indigo-50/30 flex flex-col overflow-hidden">
+            {/* ===== Top Header Bar ===== */}
+            <header className="flex justify-between items-center px-6 py-3 bg-white/80 backdrop-blur-md border-b border-gray-200/60 z-40 animate-fadeIn">
                 <div className="flex items-center gap-4">
-                    <div className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 font-sans tracking-tight hidden sm:block">WebRTC Meet</div>
-
-                    <div className="relative">
-                        <button
-                            onClick={() => setShowMeetingDetails(!showMeetingDetails)}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors border ${showMeetingDetails ? 'bg-indigo-600 border-indigo-500 text-white' : 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'}`}
-                        >
-                            <Info className="w-4 h-4" />
-                            <span className="hidden sm:inline">Meeting Details</span>
-                        </button>
-
-                        {showMeetingDetails && (
-                            <div className="absolute top-10 left-0 w-72 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2">
-                                <h3 className="text-sm font-semibold text-white mb-2">Joining Info</h3>
-                                <div className="bg-gray-950 p-2 rounded-lg flex items-center justify-between border border-gray-800 gap-3">
-                                    <code className="text-gray-300 text-xs font-mono truncate">{roomId}</code>
-                                    <button
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(roomId || '');
-                                            alert('Meeting link copied to clipboard!');
-                                        }}
-                                        className="text-gray-400 hover:text-white p-1 hover:bg-gray-800 rounded bg-gray-900 transition-colors shrink-0"
-                                        title="Copy Meeting ID"
-                                    >
-                                        <Copy className="w-4 h-4" />
-                                    </button>
-                                </div>
-                                <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-                                    Share this meeting ID with others you want in the meeting. They can enter it on the home page.
-                                </p>
-                            </div>
-                        )}
+                    <button onClick={() => navigate('/')} className="p-2 hover:bg-gray-100 rounded-xl transition-colors" title="Back to Home">
+                        <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div>
+                        <h1 className="text-lg font-bold text-gray-800 tracking-tight">Meeting Room</h1>
+                        <p className="text-xs text-gray-400 font-mono">ID: {roomId}</p>
                     </div>
+                    <button
+                        onClick={() => { navigator.clipboard.writeText(roomId || ''); alert('Meeting ID copied!'); }}
+                        className="ml-1 p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                        title="Copy Meeting ID"
+                    >
+                        <Copy className="w-4 h-4" />
+                    </button>
                 </div>
-                <div className="text-gray-400 text-sm font-medium flex items-center gap-2 bg-gray-800/50 px-3 py-1.5 rounded-full border border-gray-800">
-                    <Users className="w-4 h-4" />
-                    {totalParticipants}
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-full text-sm font-semibold border border-indigo-100">
+                        <Users className="w-4 h-4" />
+                        {totalParticipants}
+                    </div>
+                    {isScreenSharing && (
+                        <span className="flex items-center gap-1.5 bg-green-50 text-green-600 px-3 py-1.5 rounded-full text-xs font-semibold border border-green-100 animate-pulseGlow">
+                            <MonitorUp className="w-3.5 h-3.5" /> Sharing Screen
+                        </span>
+                    )}
                 </div>
             </header>
 
-            <div className="flex flex-1 min-h-0 mb-20 gap-4 relative">
-                <main className={`flex-1 grid ${gridCols} gap-4 auto-rows-fr`}>
-                    {/* Local Video */}
-                    <div className="bg-gray-900 rounded-2xl overflow-hidden relative border border-gray-800 shadow-xl h-full min-h-[250px]">
+            {/* ===== Main Content Area ===== */}
+            <div className="flex flex-1 min-h-0 p-4 gap-4">
+
+                {/* ===== Left: Video Area ===== */}
+                <div className="flex-1 flex flex-col gap-3 min-w-0 animate-slideUp">
+                    {/* Speaker / Main Video */}
+                    <div className="flex-1 video-tile bg-white border border-gray-200/80 shadow-lg min-h-0">
                         <video
                             ref={localVideoRef}
                             autoPlay
@@ -554,50 +570,90 @@ export default function Room() {
                             className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
                         />
                         {isVideoOff && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                                <span className="text-3xl font-bold bg-indigo-600/30 w-24 h-24 flex items-center justify-center rounded-full text-white border-2 border-indigo-500/30">
+                            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg animate-float ${getAvatarGradient(user?.name || 'U')}`}>
                                     {user?.name?.charAt(0).toUpperCase()}
-                                </span>
+                                </div>
                             </div>
                         )}
-                        <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-md text-sm text-white backdrop-blur-sm flex items-center gap-2">
+                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
+                            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
                             {user?.name} (You)
-                            {isMuted && <MicOff className="w-4 h-4 text-red-400" />}
+                            {isMuted && <MicOff className="w-3.5 h-3.5 text-red-500" />}
                         </div>
+                        {peers.length === 0 && (
+                            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs text-gray-400 font-medium shadow border border-gray-100">
+                                Waiting for others to join...
+                            </div>
+                        )}
                     </div>
 
-                    {/* Remote Videos */}
-                    {peers.map(peer => (
-                        <div key={peer.id} className="bg-gray-900 rounded-2xl overflow-hidden relative border border-gray-800 shadow-xl h-full min-h-[250px]">
-                            <RemoteVideo stream={peer.stream} name={peer.name} />
-                            <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-md text-sm text-white backdrop-blur-sm">
-                                {peer.name}
-                            </div>
+                    {/* Thumbnail Strip */}
+                    {peers.length > 0 && (
+                        <div className="flex gap-3 overflow-x-auto pb-1 meeting-scroll animate-slideUp stagger-2">
+                            {peers.map((peer, i) => (
+                                <div key={peer.id} className={`video-tile bg-white border border-gray-200/80 shadow-md shrink-0 w-48 h-32 stagger-${i + 1}`}>
+                                    <RemoteVideo stream={peer.stream} name={peer.name} />
+                                    <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-gray-600 font-medium shadow-sm flex items-center gap-1.5 border border-gray-200/50">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                                        {peer.name}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </main>
+                    )}
+                </div>
 
-                {/* Participants Sidebar (Host Only) */}
-                {isHost && isParticipantsOpen && (
-                    <aside className="w-80 shrink-0 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl flex flex-col overflow-hidden z-10 hidden md:flex">
-                        <div className="p-4 border-b border-gray-800 bg-gray-900/50 flex justify-between items-center">
-                            <h2 className="font-semibold text-white">Participants & Waitlist</h2>
-                            <button onClick={() => setIsParticipantsOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-6 flex flex-col">
-                            {/* Pending Users */}
-                            {pendingUsers.length > 0 && (
-                                <div>
-                                    <h3 className="text-sm text-gray-400 font-semibold mb-3 uppercase">Waiting ({pendingUsers.length})</h3>
-                                    <div className="space-y-3">
+                {/* ===== Right: Combined Panel (Participants + Chat) ===== */}
+                <aside className="w-80 shrink-0 bg-white rounded-2xl border border-gray-200/80 shadow-lg flex flex-col overflow-hidden animate-slideInRight hidden md:flex">
+                    {/* Tab Headers */}
+                    <div className="flex border-b border-gray-100 bg-gray-50/50">
+                        <button
+                            onClick={() => setActiveTab('participants')}
+                            className={`flex-1 py-3 text-sm font-semibold transition-all relative ${activeTab === 'participants' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            Participants
+                            <span className="ml-1.5 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">{totalParticipants}</span>
+                            {activeTab === 'participants' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
+                        </button>
+                        <button
+                            onClick={() => { setActiveTab('chat'); setIsChatOpen(true); }}
+                            className={`flex-1 py-3 text-sm font-semibold transition-all relative ${activeTab === 'chat' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                            Chat
+                            {messages.length > 0 && activeTab !== 'chat' && (
+                                <span className="ml-1.5 w-2 h-2 bg-red-500 rounded-full inline-block animate-pulse"></span>
+                            )}
+                            {activeTab === 'chat' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
+                        </button>
+                    </div>
+
+                    {/* Tab Content */}
+                    {activeTab === 'participants' ? (
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4 meeting-scroll">
+                            {/* Pending Users (Host Only) */}
+                            {isHost && pendingUsers.length > 0 && (
+                                <div className="animate-fadeIn">
+                                    <h3 className="text-xs text-amber-600 font-bold uppercase mb-2 tracking-wider flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                                        Waiting ({pendingUsers.length})
+                                    </h3>
+                                    <div className="space-y-2">
                                         {pendingUsers.map(u => (
-                                            <div key={u.socketId} className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-yellow-500/30">
-                                                <span className="text-sm font-medium text-white break-all pr-2">{u.name}</span>
-                                                <div className="flex gap-2 shrink-0">
-                                                    <button onClick={() => admitUser(u.socketId)} className="text-green-400 hover:text-green-300 transition-colors bg-green-400/10 p-1.5 rounded-md"><CheckCircle className="w-4 h-4" /></button>
-                                                    <button onClick={() => denyUser(u.socketId)} className="text-red-400 hover:text-red-300 transition-colors bg-red-400/10 p-1.5 rounded-md"><XCircle className="w-4 h-4" /></button>
+                                            <div key={u.socketId} className="flex items-center justify-between bg-amber-50 p-3 rounded-xl border border-amber-200/50 animate-slideInMsg">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${getAvatarGradient(u.name)}`}>
+                                                        {u.name?.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <span className="text-sm font-medium text-gray-700">{u.name}</span>
+                                                </div>
+                                                <div className="flex gap-1.5">
+                                                    <button onClick={() => admitUser(u.socketId)} className="p-1.5 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition-colors">
+                                                        <CheckCircle className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => denyUser(u.socketId)} className="p-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors">
+                                                        <XCircle className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
@@ -605,145 +661,163 @@ export default function Room() {
                                 </div>
                             )}
 
-                            {/* Active Users */}
+                            {/* Active Participants */}
                             <div>
-                                <h3 className="text-sm text-gray-400 font-semibold mb-3 uppercase">In Meeting ({peers.length + 1})</h3>
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between text-gray-300 text-sm">
-                                        <span>{user?.name} (Host, You)</span>
-                                    </div>
-                                    {peers.map(peer => (
-                                        <div key={peer.id} className="flex items-center justify-between text-gray-300 text-sm">
-                                            <span className="truncate pr-2">{peer.name}</span>
-                                            <div className="flex gap-2 shrink-0">
-                                                <button onClick={() => handleForceMute(peer.id)} title="Force Mute" className="p-1 hover:bg-gray-800 rounded-md text-red-400 transition-colors">
-                                                    <MicOff className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => handleForceVideoOff(peer.id)} title="Stop Video" className="p-1 hover:bg-gray-800 rounded-md text-red-400 transition-colors">
-                                                    <VideoOff className="w-4 h-4" />
-                                                </button>
+                                <h3 className="text-xs text-gray-400 font-bold uppercase mb-2 tracking-wider">In Meeting</h3>
+                                <div className="space-y-1.5">
+                                    {/* Self */}
+                                    <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarGradient(user?.name || 'U')}`}>
+                                                {user?.name?.charAt(0).toUpperCase()}
                                             </div>
+                                            <div>
+                                                <span className="text-sm font-semibold text-gray-700">{user?.name}</span>
+                                                <span className="text-xs text-gray-400 ml-1">(You{isHost ? ', Host' : ''})</span>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-1.5">
+                                            {isMuted && <MicOff className="w-4 h-4 text-red-400" />}
+                                            {isVideoOff && <VideoOff className="w-4 h-4 text-red-400" />}
+                                        </div>
+                                    </div>
+
+                                    {/* Remote peers */}
+                                    {peers.map(peer => (
+                                        <div key={peer.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarGradient(peer.name)}`}>
+                                                    {peer.name?.charAt(0).toUpperCase()}
+                                                </div>
+                                                <span className="text-sm font-medium text-gray-700">{peer.name}</span>
+                                            </div>
+                                            {isHost && (
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleForceMute(peer.id)} title="Force Mute" className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                                                        <MicOff className="w-3.5 h-3.5" />
+                                                    </button>
+                                                    <button onClick={() => handleForceVideoOff(peer.id)} title="Stop Video" className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                                                        <VideoOff className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         </div>
-                    </aside>
-                )}
-
-                {/* Chat Sidebar */}
-                {isChatOpen && (
-                    <aside className="w-80 shrink-0 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl flex flex-col overflow-hidden z-10 hidden md:flex">
-                        <div className="p-4 border-b border-gray-800 bg-gray-900/50 flex justify-between items-center">
-                            <h2 className="font-semibold text-white">In-call Messages</h2>
-                            <button onClick={() => setIsChatOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                            {messages.map((msg, idx) => (
-                                <div key={msg.id || idx} className={`flex flex-col ${msg.isLocal ? 'items-end' : 'items-start'}`}>
-                                    <span className="text-xs text-gray-500 mb-1">{msg.isLocal ? 'You' : msg.senderName}</span>
-                                    <div className={`px-4 py-2 rounded-2xl text-sm max-w-[85%] break-words ${msg.isLocal ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-800 text-gray-200 rounded-bl-none'}`}>
-                                        {msg.message}
+                    ) : (
+                        /* Chat Tab */
+                        <>
+                            <div className="flex-1 overflow-y-auto p-4 space-y-3 meeting-scroll">
+                                {messages.length === 0 && (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-300">
+                                        <MessageSquare className="w-10 h-10 mb-2 opacity-30" />
+                                        <p className="text-sm text-gray-400">No messages yet</p>
                                     </div>
-                                </div>
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </div>
-                        <form onSubmit={sendMessage} className="p-3 bg-gray-900 border-t border-gray-800 flex gap-2">
-                            <input
-                                type="text"
-                                value={chatInput}
-                                onChange={(e) => setChatInput(e.target.value)}
-                                placeholder="Send a message..."
-                                className="flex-1 bg-gray-800 text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-0"
-                            />
-                            <button type="submit" disabled={!chatInput.trim()} className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0">
-                                <Send className="w-4 h-4" />
-                            </button>
-                        </form>
-                    </aside>
-                )}
+                                )}
+                                {messages.map((msg, idx) => (
+                                    <div key={msg.id || idx} className={`flex flex-col ${msg.isLocal ? 'items-end' : 'items-start'} animate-slideInMsg`}>
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            {!msg.isLocal && (
+                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${getAvatarGradient(msg.senderName)}`}>
+                                                    {msg.senderName?.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                            <span className="text-[11px] text-gray-400 font-medium">{msg.isLocal ? 'You' : msg.senderName}</span>
+                                        </div>
+                                        <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[85%] break-words leading-relaxed ${msg.isLocal
+                                            ? 'bg-indigo-600 text-white rounded-br-sm shadow-md shadow-indigo-200/50'
+                                            : 'bg-gray-100 text-gray-700 rounded-bl-sm'}`}
+                                        >
+                                            {msg.message}
+                                        </div>
+                                    </div>
+                                ))}
+                                <div ref={messagesEndRef} />
+                            </div>
+                            <form onSubmit={sendMessage} className="p-3 bg-gray-50/80 border-t border-gray-100 flex gap-2">
+                                <input
+                                    type="text"
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    placeholder="Type a message..."
+                                    className="flex-1 bg-white text-gray-700 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 border border-gray-200 placeholder-gray-400 min-w-0 transition-all"
+                                />
+                                <button type="submit" disabled={!chatInput.trim()} className="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 shadow-md shadow-indigo-200/50">
+                                    <Send className="w-4 h-4" />
+                                </button>
+                            </form>
+                        </>
+                    )}
+                </aside>
             </div>
 
+            {/* ===== Toast Notification ===== */}
             {toastMessage && (
                 <div
-                    onClick={() => {
-                        setIsChatOpen(true);
-                        setToastMessage(null);
-                    }}
-                    className="fixed bottom-24 right-4 bg-gray-900 border border-gray-800 rounded-lg shadow-xl p-4 z-50 animate-in slide-in-from-right-4 fade-in max-w-xs flex items-start gap-3 cursor-pointer hover:bg-gray-800 transition-all border-l-4 border-l-indigo-500"
+                    onClick={() => { setActiveTab('chat'); setIsChatOpen(true); setToastMessage(null); }}
+                    className="fixed bottom-28 right-6 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 animate-slideUp max-w-xs flex items-start gap-3 cursor-pointer hover:shadow-xl transition-all"
                 >
-                    <MessageSquare className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+                    <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                        <MessageSquare className="w-4 h-4 text-indigo-600" />
+                    </div>
                     <div className="flex flex-col overflow-hidden flex-1">
-                        <span className="text-sm font-semibold text-white truncate">{toastMessage.sender}</span>
-                        <span className="text-sm text-gray-300 truncate">{toastMessage.text}</span>
+                        <span className="text-sm font-semibold text-gray-800 truncate">{toastMessage.sender}</span>
+                        <span className="text-sm text-gray-500 truncate">{toastMessage.text}</span>
                     </div>
                     <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setToastMessage(null);
-                        }}
-                        className="text-gray-500 hover:text-white shrink-0"
+                        onClick={(e) => { e.stopPropagation(); setToastMessage(null); }}
+                        className="text-gray-300 hover:text-gray-600 shrink-0"
                     >
                         <X className="w-4 h-4" />
                     </button>
                 </div>
             )}
 
-            <footer className="fixed bottom-0 left-0 right-0 h-20 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 flex justify-center items-center gap-4 px-4 shadow-2xl z-50">
+            {/* ===== Bottom Control Bar ===== */}
+            <footer className="fixed bottom-5 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-xl border border-gray-200/60 rounded-full shadow-2xl px-6 py-3 flex items-center gap-3 z-50 animate-slideUp stagger-4">
                 <button
                     onClick={toggleMute}
-                    className={`p-4 rounded-full transition-all shadow-lg ${isMuted ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
+                    className={`control-btn ${isMuted ? 'bg-red-100 text-red-600 shadow-md shadow-red-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
+                    title={isMuted ? 'Unmute' : 'Mute'}
                 >
                     {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
                 </button>
                 <button
                     onClick={toggleVideo}
-                    className={`p-4 rounded-full transition-all shadow-lg ${isVideoOff ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
+                    className={`control-btn ${isVideoOff ? 'bg-red-100 text-red-600 shadow-md shadow-red-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
+                    title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
                 >
                     {isVideoOff ? <VideoOff className="w-5 h-5" /> : <VideoIcon className="w-5 h-5" />}
                 </button>
                 <button
                     onClick={toggleScreenShare}
-                    className={`p-4 rounded-full transition-all shadow-lg hidden md:block ${isScreenSharing ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
+                    className={`control-btn hidden md:block ${isScreenSharing ? 'bg-indigo-100 text-indigo-600 shadow-md shadow-indigo-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
+                    title="Share Screen"
                 >
                     <MonitorUp className="w-5 h-5" />
                 </button>
-                {isHost && (
-                    <button
-                        onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}
-                        className={`p-4 rounded-full transition-all flex items-center justify-center relative shadow-lg hidden md:flex ${isParticipantsOpen ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
-                    >
-                        <Users className="w-5 h-5" />
-                        {pendingUsers.length > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full z-10 shadow-md min-w-[20px] text-center shrink-0">
-                                {pendingUsers.length}
-                            </span>
-                        )}
-                    </button>
-                )}
-                <button
-                    onClick={() => setIsChatOpen(!isChatOpen)}
-                    className={`p-4 rounded-full transition-all shadow-lg hidden md:block ${isChatOpen ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
-                >
-                    <MessageSquare className="w-5 h-5" />
-                </button>
+
+                {/* Divider */}
+                <div className="w-px h-8 bg-gray-200 mx-1"></div>
+
                 <button
                     onClick={handleLeave}
-                    className="p-4 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all shadow-[0_0_15px_rgba(220,38,38,0.5)] ml-4"
+                    className="control-btn bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-200/50 flex items-center gap-2 px-5"
                     title="Leave Meeting"
                 >
                     <PhoneOff className="w-5 h-5" />
+                    <span className="text-sm font-semibold hidden sm:inline">End</span>
                 </button>
                 {isHost && (
                     <button
                         onClick={handleEndMeeting}
-                        className="p-4 rounded-full bg-red-800 hover:bg-red-900 text-white transition-all shadow-[0_0_15px_rgba(153,27,27,0.5)] ml-2"
+                        className="control-btn bg-red-700 hover:bg-red-800 text-white shadow-lg shadow-red-300/50 px-4 flex items-center gap-2"
                         title="End Meeting for All"
                     >
-                        <Power className="w-5 h-5" />
+                        <Power className="w-4 h-4" />
+                        <span className="text-xs font-semibold hidden sm:inline">End All</span>
                     </button>
                 )}
             </footer>
