@@ -89,6 +89,18 @@ io.on('connection', (socket) => {
       });
     });
 
+    // Chat Signaling
+    socket.on('chat-message', (payload) => {
+      // Broadcast to others in the room
+      socket.to(roomId).emit('chat-message', {
+        id: Math.random().toString(36).substring(7),
+        message: payload.message,
+        senderName: user.name,
+        senderId: socket.id,
+        timestamp: new Date().toISOString()
+      });
+    });
+
     socket.on('disconnect', () => {
       roomUsers[roomId] = roomUsers[roomId].filter(u => u.socketId !== socket.id);
       socket.to(roomId).emit('user-left', socket.id);

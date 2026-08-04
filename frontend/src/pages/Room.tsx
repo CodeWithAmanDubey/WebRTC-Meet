@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, Monitor } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -19,6 +19,15 @@ interface PeerData {
     stream: MediaStream;
 }
 
+interface ChatMessage {
+    id: string;
+    message: string;
+    senderName: string;
+    senderId: string;
+    timestamp: string;
+    isLocal?: boolean;
+}
+
 export default function Room() {
     const { roomId } = useParams<{ roomId: string }>();
     const { user, token } = useAuth();
@@ -27,6 +36,20 @@ export default function Room() {
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
     const [peers, setPeers] = useState<PeerData[]>([]);
+
+    // Chat states
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [chatInput, setChatInput] = useState('');
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages, isChatOpen]);
 
     const localVideoRef = useRef<HTMLVideoElement>(null);
     const socketRef = useRef<Socket | null>(null);
@@ -208,6 +231,11 @@ export default function Room() {
                 }
             });
 
+            // When we receive a chat message
+            socket.on('chat-message', (data: ChatMessage) => {
+                setMessages(prev => [...prev, data]);
+            });
+
             // When a user leaves
             socket.on('user-left', (socketId: string) => {
                 console.log(`[Signal] user-left: ${socketId}`);
@@ -259,6 +287,31 @@ export default function Room() {
         navigate('/');
     };
 
+    const sendMessage = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!chatInput.trim() || !socketRef.current) return;
+
+        const messageData = {
+            roomId,
+            message: chatInput,
+            senderName: user?.name,
+            timestamp: new Date().toISOString()
+        };
+
+        socketRef.current.emit('chat-message', messageData);
+
+        setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            message: chatInput,
+            senderName: user?.name || 'Me',
+            senderId: socketRef.current?.id || 'local',
+            timestamp: messageData.timestamp,
+            isLocal: true
+        }]);
+
+        setChatInput('');
+    };
+
     // Calculate grid columns based on participant count
     const totalParticipants = 1 + peers.length;
     const gridCols = totalParticipants <= 1 ? 'grid-cols-1' :
@@ -279,41 +332,75 @@ export default function Room() {
                 </div>
             </header>
 
-            <main className={`flex-grow grid ${gridCols} gap-4 mb-20 relative auto-rows-fr`}>
-                {/* Local Video */}
-                <div className="bg-gray-900 rounded-2xl overflow-hidden relative border border-gray-800 shadow-xl h-full min-h-[250px]">
-                    <video
-                        ref={localVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className={`w-full h-full object-cover -scale-x-100 ${isVideoOff ? 'hidden' : ''}`}
-                    />
-                    {isVideoOff && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                            <span className="text-3xl font-bold bg-indigo-600/30 w-24 h-24 flex items-center justify-center rounded-full text-white border-2 border-indigo-500/30">
-                                {user?.name?.charAt(0).toUpperCase()}
-                            </span>
-                        </div>
-                    )}
-                    <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-md text-sm text-white backdrop-blur-sm flex items-center gap-2">
-                        {user?.name} (You)
-                        {isMuted && <MicOff className="w-4 h-4 text-red-400" />}
-                    </div>
-                </div>
-
-                {/* Remote Videos */}
-                {peers.map(peer => (
-                    <div key={peer.id} className="bg-gray-900 rounded-2xl overflow-hidden relative border border-gray-800 shadow-xl h-full min-h-[250px]">
-                        <RemoteVideo stream={peer.stream} name={peer.name} />
-                        <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-md text-sm text-white backdrop-blur-sm">
-                            {peer.name}
+            <div className="flex flex-1 min-h-0 mb-20 gap-4 relative">
+                <main className={`flex-1 grid ${gridCols} gap-4 auto-rows-fr`}>
+                    {/* Local Video */}
+                    <div className="bg-gray-900 rounded-2xl overflow-hidden relative border border-gray-800 shadow-xl h-full min-h-[250px]">
+                        <video
+                            ref={localVideoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            className={`w-full h-full object-cover -scale-x-100 ${isVideoOff ? 'hidden' : ''}`}
+                        />
+                        {isVideoOff && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                                <span className="text-3xl font-bold bg-indigo-600/30 w-24 h-24 flex items-center justify-center rounded-full text-white border-2 border-indigo-500/30">
+                                    {user?.name?.charAt(0).toUpperCase()}
+                                </span>
+                            </div>
+                        )}
+                        <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-md text-sm text-white backdrop-blur-sm flex items-center gap-2">
+                            {user?.name} (You)
+                            {isMuted && <MicOff className="w-4 h-4 text-red-400" />}
                         </div>
                     </div>
-                ))}
-            </main>
 
-            <footer className="fixed bottom-0 left-0 right-0 h-20 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 flex justify-center items-center gap-4 px-4 shadow-2xl">
+                    {/* Remote Videos */}
+                    {peers.map(peer => (
+                        <div key={peer.id} className="bg-gray-900 rounded-2xl overflow-hidden relative border border-gray-800 shadow-xl h-full min-h-[250px]">
+                            <RemoteVideo stream={peer.stream} name={peer.name} />
+                            <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-md text-sm text-white backdrop-blur-sm">
+                                {peer.name}
+                            </div>
+                        </div>
+                    ))}
+                </main>
+
+                {/* Chat Sidebar */}
+                {isChatOpen && (
+                    <aside className="w-80 shrink-0 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl flex flex-col overflow-hidden z-10 hidden md:flex">
+                        <div className="p-4 border-b border-gray-800 bg-gray-900/50">
+                            <h2 className="font-semibold text-white">In-call Messages</h2>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                            {messages.map((msg, idx) => (
+                                <div key={msg.id || idx} className={`flex flex-col ${msg.isLocal ? 'items-end' : 'items-start'}`}>
+                                    <span className="text-xs text-gray-500 mb-1">{msg.isLocal ? 'You' : msg.senderName}</span>
+                                    <div className={`px-4 py-2 rounded-2xl text-sm max-w-[85%] break-words ${msg.isLocal ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-800 text-gray-200 rounded-bl-none'}`}>
+                                        {msg.message}
+                                    </div>
+                                </div>
+                            ))}
+                            <div ref={messagesEndRef} />
+                        </div>
+                        <form onSubmit={sendMessage} className="p-3 bg-gray-900 border-t border-gray-800 flex gap-2">
+                            <input
+                                type="text"
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                placeholder="Send a message..."
+                                className="flex-1 bg-gray-800 text-white rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-0"
+                            />
+                            <button type="submit" disabled={!chatInput.trim()} className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0">
+                                <Send className="w-4 h-4" />
+                            </button>
+                        </form>
+                    </aside>
+                )}
+            </div>
+
+            <footer className="fixed bottom-0 left-0 right-0 h-20 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 flex justify-center items-center gap-4 px-4 shadow-2xl z-50">
                 <button
                     onClick={toggleMute}
                     className={`p-4 rounded-full transition-all shadow-lg ${isMuted ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
@@ -325,6 +412,12 @@ export default function Room() {
                     className={`p-4 rounded-full transition-all shadow-lg ${isVideoOff ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
                 >
                     {isVideoOff ? <VideoOff className="w-5 h-5" /> : <VideoIcon className="w-5 h-5" />}
+                </button>
+                <button
+                    onClick={() => setIsChatOpen(!isChatOpen)}
+                    className={`p-4 rounded-full transition-all shadow-lg hidden md:block ${isChatOpen ? 'bg-indigo-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
+                >
+                    <MessageSquare className="w-5 h-5" />
                 </button>
                 <button
                     onClick={handleLeave}
