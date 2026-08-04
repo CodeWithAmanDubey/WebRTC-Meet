@@ -477,11 +477,11 @@ export default function Room() {
         return gradients[idx];
     };
 
-    // Right panel tab state
-    const [activeTab, setActiveTab] = useState<'participants' | 'chat'>('participants');
-
     // Click-to-pin: which video is the main speaker ('local' or a peer id)
     const [pinnedId, setPinnedId] = useState<string>('local');
+
+    // Right panel tab state
+    const [activeTab, setActiveTab] = useState<'participants' | 'chat' | 'info' | null>(null);
 
     if (waitingStatus === 'idle') {
         return (
@@ -522,49 +522,15 @@ export default function Room() {
         );
     }
 
-    // Calculate grid columns based on participant count
-    const totalParticipants = 1 + peers.length;
-
     return (
         <div className="h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-indigo-50/30 flex flex-col overflow-hidden">
-            {/* ===== Top Header Bar ===== */}
-            <header className="flex justify-between items-center px-6 py-3 bg-white/80 backdrop-blur-md border-b border-gray-200/60 z-40 animate-fadeIn">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => navigate('/')} className="p-2 hover:bg-gray-100 rounded-xl transition-colors" title="Back to Home">
-                        <svg className="w-5 h-5 text-gray-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
-                    </button>
-                    <div>
-                        <h1 className="text-lg font-bold text-gray-800 tracking-tight">Meeting Room</h1>
-                        <p className="text-xs text-gray-400 font-mono">ID: {roomId}</p>
-                    </div>
-                    <button
-                        onClick={() => { navigator.clipboard.writeText(roomId || ''); alert('Meeting ID copied!'); }}
-                        className="ml-1 p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                        title="Copy Meeting ID"
-                    >
-                        <Copy className="w-4 h-4" />
-                    </button>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-full text-sm font-semibold border border-indigo-100">
-                        <Users className="w-4 h-4" />
-                        {totalParticipants}
-                    </div>
-                    {isScreenSharing && (
-                        <span className="flex items-center gap-1.5 bg-green-50 text-green-600 px-3 py-1.5 rounded-full text-xs font-semibold border border-green-100 animate-pulseGlow">
-                            <MonitorUp className="w-3.5 h-3.5" /> Sharing Screen
-                        </span>
-                    )}
-                </div>
-            </header>
-
             {/* ===== Main Content Area ===== */}
             <div className="flex flex-1 min-h-0 p-4 gap-4">
 
                 {/* ===== Left: Video Area ===== */}
-                <div className="flex-1 flex flex-col gap-3 min-w-0 animate-slideUp pb-16">
+                <div className="flex-1 flex flex-col gap-3 min-w-0 animate-slideUp pb-16 justify-center">
                     {/* Main / Pinned Video */}
-                    <div className="flex-1 video-tile bg-white border border-gray-200/80 shadow-lg min-h-0 cursor-pointer" onClick={() => setPinnedId(pinnedId === 'local' ? 'local' : pinnedId)}>
+                    <div className="relative w-full max-w-5xl mx-auto aspect-[4/3] video-tile bg-black/5 border border-gray-200/80 shadow-lg min-h-0 cursor-pointer overflow-hidden rounded-2xl" onClick={() => setPinnedId(pinnedId === 'local' ? 'local' : pinnedId)}>
                         {pinnedId === 'local' ? (
                             <>
                                 <video
@@ -576,15 +542,15 @@ export default function Room() {
                                 />
                                 {isVideoOff && (
                                     <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                                        <div className={`w-24 h-24 rounded-full flex items-center justify-center text-white text-3xl font-bold shadow-lg animate-float ${getAvatarGradient(user?.name || 'U')}`}>
+                                        <div className={`w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-lg animate-float ${getAvatarGradient(user?.name || 'U')}`}>
                                             {user?.name?.charAt(0).toUpperCase()}
                                         </div>
                                     </div>
                                 )}
-                                <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
-                                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                                <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
                                     {user?.name} (You)
-                                    {isMuted && <MicOff className="w-3.5 h-3.5 text-red-500" />}
+                                    {isMuted && <MicOff className="w-4 h-4 text-red-500" />}
                                 </div>
                             </>
                         ) : (
@@ -592,8 +558,8 @@ export default function Room() {
                                 {peers.filter(p => p.id === pinnedId).map(peer => (
                                     <React.Fragment key={peer.id}>
                                         <RemoteVideo stream={peer.stream} name={peer.name} />
-                                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm px-4 py-1.5 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
-                                            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                                        <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
                                             {peer.name}
                                         </div>
                                     </React.Fragment>
@@ -601,7 +567,7 @@ export default function Room() {
                             </>
                         )}
                         {peers.length === 0 && (
-                            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full text-xs text-gray-400 font-medium shadow border border-gray-100">
+                            <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-gray-400 font-medium shadow border border-gray-100">
                                 Waiting for others to join...
                             </div>
                         )}
@@ -609,11 +575,11 @@ export default function Room() {
 
                     {/* Thumbnail Strip */}
                     {peers.length > 0 && (
-                        <div className="flex gap-3 overflow-x-auto pb-1 meeting-scroll animate-slideUp stagger-2">
+                        <div className="flex gap-4 overflow-x-auto pb-2 meeting-scroll animate-slideUp stagger-2 justify-center">
                             {/* Local thumbnail (when not pinned) */}
                             {pinnedId !== 'local' && (
                                 <div
-                                    className={`video-tile bg-white border-2 shadow-md shrink-0 w-48 h-32 cursor-pointer transition-all hover:scale-105 ${pinnedId === 'local' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200/80'}`}
+                                    className={`video-tile bg-white border-2 shadow-md shrink-0 w-72 h-52 cursor-pointer transition-all hover:scale-105 ${pinnedId === 'local' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200/80'}`}
                                     onClick={() => setPinnedId('local')}
                                 >
                                     <video
@@ -621,11 +587,11 @@ export default function Room() {
                                         autoPlay
                                         playsInline
                                         muted
-                                        className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
+                                        className={`w-full h-full object-cover rounded-xl ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
                                     />
                                     {isVideoOff && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold ${getAvatarGradient(user?.name || 'U')}`}>
+                                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl">
+                                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold ${getAvatarGradient(user?.name || 'U')}`}>
                                                 {user?.name?.charAt(0).toUpperCase()}
                                             </div>
                                         </div>
@@ -640,7 +606,7 @@ export default function Room() {
                             {peers.filter(p => p.id !== pinnedId).map((peer, i) => (
                                 <div
                                     key={peer.id}
-                                    className={`video-tile bg-white border-2 shadow-md shrink-0 w-48 h-32 cursor-pointer transition-all hover:scale-105 ${pinnedId === peer.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200/80'} stagger-${i + 1}`}
+                                    className={`video-tile bg-white border-2 shadow-md shrink-0 w-72 h-52 cursor-pointer transition-all hover:scale-105 ${pinnedId === peer.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200/80'} stagger-${i + 1}`}
                                     onClick={() => setPinnedId(peer.id)}
                                 >
                                     <RemoteVideo stream={peer.stream} name={peer.name} />
@@ -654,153 +620,190 @@ export default function Room() {
                     )}
                 </div>
 
-                {/* ===== Right: Combined Panel (Participants + Chat) ===== */}
-                <aside className="w-80 shrink-0 bg-white rounded-2xl border border-gray-200/80 shadow-lg flex flex-col overflow-hidden animate-slideInRight hidden md:flex">
-                    {/* Tab Headers */}
-                    <div className="flex border-b border-gray-100 bg-gray-50/50">
-                        <button
-                            onClick={() => setActiveTab('participants')}
-                            className={`flex-1 py-3 text-sm font-semibold transition-all relative ${activeTab === 'participants' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                            Participants
-                            <span className="ml-1.5 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">{totalParticipants}</span>
-                            {activeTab === 'participants' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
-                        </button>
-                        <button
-                            onClick={() => { setActiveTab('chat'); setIsChatOpen(true); }}
-                            className={`flex-1 py-3 text-sm font-semibold transition-all relative ${activeTab === 'chat' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-                        >
-                            Chat
-                            {messages.length > 0 && activeTab !== 'chat' && (
-                                <span className="ml-1.5 w-2 h-2 bg-red-500 rounded-full inline-block animate-pulse"></span>
-                            )}
-                            {activeTab === 'chat' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
-                        </button>
-                    </div>
+                {/* ===== Right: Combined Panel (Participants + Chat + Info) ===== */}
+                {activeTab !== null && (
+                    <aside className="w-80 shrink-0 bg-white/90 backdrop-blur-xl rounded-2xl border border-gray-200/80 shadow-2xl flex flex-col overflow-hidden animate-slideInRight z-10">
+                        {/* Tab Headers */}
+                        <div className="flex border-b border-gray-100 bg-gray-50/50 relative">
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setActiveTab(null)}
+                                className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors z-10"
+                                title="Close Sidebar"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('info')}
+                                className={`flex-1 py-3 pl-1 pr-6 text-sm font-semibold transition-all relative ${activeTab === 'info' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                Info
+                                {activeTab === 'info' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('participants')}
+                                className={`flex-1 py-3 text-sm font-semibold transition-all relative ${activeTab === 'participants' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                Group
+                                <span className="ml-1 text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">{1 + peers.length}</span>
+                                {activeTab === 'participants' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('chat')}
+                                className={`flex-1 py-3 pr-6 text-sm font-semibold transition-all relative ${activeTab === 'chat' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+                            >
+                                Chat
+                                {messages.length > 0 && activeTab !== 'chat' && (
+                                    <span className="ml-1.5 w-2 h-2 bg-red-500 rounded-full inline-block animate-pulse"></span>
+                                )}
+                                {activeTab === 'chat' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
+                            </button>
+                        </div>
 
-                    {/* Tab Content */}
-                    {activeTab === 'participants' ? (
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 meeting-scroll">
-                            {/* Pending Users (Host Only) */}
-                            {isHost && pendingUsers.length > 0 && (
-                                <div className="animate-fadeIn">
-                                    <h3 className="text-xs text-amber-600 font-bold uppercase mb-2 tracking-wider flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                                        Waiting ({pendingUsers.length})
-                                    </h3>
-                                    <div className="space-y-2">
-                                        {pendingUsers.map(u => (
-                                            <div key={u.socketId} className="flex items-center justify-between bg-amber-50 p-3 rounded-xl border border-amber-200/50 animate-slideInMsg">
-                                                <div className="flex items-center gap-2.5">
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${getAvatarGradient(u.name)}`}>
-                                                        {u.name?.charAt(0).toUpperCase()}
+                        {/* Tab Content */}
+                        {activeTab === 'info' ? (
+                            <div className="flex-1 overflow-y-auto p-5 meeting-scroll">
+                                <h2 className="text-xl font-bold text-gray-800 mb-4">{user?.name}'s Meeting</h2>
+                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-4">
+                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Meeting Link / ID</p>
+                                    <div className="flex items-center justify-between gap-2 bg-white border border-gray-200 rounded-lg p-2.5">
+                                        <code className="text-sm font-mono text-indigo-600 truncate">{roomId}</code>
+                                        <button
+                                            onClick={() => { navigator.clipboard.writeText(roomId || ''); alert('Meeting ID copied!'); }}
+                                            className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
+                                            title="Copy ID"
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-3 leading-relaxed">
+                                        Share this ID with others so they can join the meeting from the homepage.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : activeTab === 'participants' ? (
+                            <div className="flex-1 overflow-y-auto p-4 space-y-4 meeting-scroll">
+                                {/* Pending Users (Host Only) */}
+                                {isHost && pendingUsers.length > 0 && (
+                                    <div className="animate-fadeIn">
+                                        <h3 className="text-xs text-amber-600 font-bold uppercase mb-2 tracking-wider flex items-center gap-1.5">
+                                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                                            Waiting ({pendingUsers.length})
+                                        </h3>
+                                        <div className="space-y-2">
+                                            {pendingUsers.map(u => (
+                                                <div key={u.socketId} className="flex items-center justify-between bg-amber-50 p-3 rounded-xl border border-amber-200/50 animate-slideInMsg">
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${getAvatarGradient(u.name)}`}>
+                                                            {u.name?.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <span className="text-sm font-medium text-gray-700">{u.name}</span>
                                                     </div>
-                                                    <span className="text-sm font-medium text-gray-700">{u.name}</span>
+                                                    <div className="flex gap-1.5">
+                                                        <button onClick={() => admitUser(u.socketId)} className="p-1.5 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition-colors">
+                                                            <CheckCircle className="w-4 h-4" />
+                                                        </button>
+                                                        <button onClick={() => denyUser(u.socketId)} className="p-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors">
+                                                            <XCircle className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-1.5">
-                                                    <button onClick={() => admitUser(u.socketId)} className="p-1.5 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition-colors">
-                                                        <CheckCircle className="w-4 h-4" />
-                                                    </button>
-                                                    <button onClick={() => denyUser(u.socketId)} className="p-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors">
-                                                        <XCircle className="w-4 h-4" />
-                                                    </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Active Participants */}
+                                <div>
+                                    <h3 className="text-xs text-gray-400 font-bold uppercase mb-2 tracking-wider">In Meeting</h3>
+                                    <div className="space-y-1.5">
+                                        {/* Self */}
+                                        <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarGradient(user?.name || 'U')}`}>
+                                                    {user?.name?.charAt(0).toUpperCase()}
                                                 </div>
+                                                <div>
+                                                    <span className="text-sm font-semibold text-gray-700">{user?.name}</span>
+                                                    <span className="text-xs text-gray-400 ml-1">(You{isHost ? ', Host' : ''})</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-1.5">
+                                                {isMuted && <MicOff className="w-4 h-4 text-red-400" />}
+                                                {isVideoOff && <VideoOff className="w-4 h-4 text-red-400" />}
+                                            </div>
+                                        </div>
+
+                                        {/* Remote peers */}
+                                        {peers.map(peer => (
+                                            <div key={peer.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
+                                                <div className="flex items-center gap-2.5">
+                                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarGradient(peer.name)}`}>
+                                                        {peer.name?.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <span className="text-sm font-medium text-gray-700">{peer.name}</span>
+                                                </div>
+                                                {isHost && (
+                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button onClick={() => handleForceMute(peer.id)} title="Force Mute" className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                                                            <MicOff className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button onClick={() => handleForceVideoOff(peer.id)} title="Stop Video" className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
+                                                            <VideoOff className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            )}
-
-                            {/* Active Participants */}
-                            <div>
-                                <h3 className="text-xs text-gray-400 font-bold uppercase mb-2 tracking-wider">In Meeting</h3>
-                                <div className="space-y-1.5">
-                                    {/* Self */}
-                                    <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarGradient(user?.name || 'U')}`}>
-                                                {user?.name?.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <span className="text-sm font-semibold text-gray-700">{user?.name}</span>
-                                                <span className="text-xs text-gray-400 ml-1">(You{isHost ? ', Host' : ''})</span>
-                                            </div>
+                            </div>
+                        ) : (
+                            /* Chat Tab */
+                            <>
+                                <div className="flex-1 overflow-y-auto p-4 space-y-3 meeting-scroll">
+                                    {messages.length === 0 && (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-300">
+                                            <MessageSquare className="w-10 h-10 mb-2 opacity-30" />
+                                            <p className="text-sm text-gray-400">No messages yet</p>
                                         </div>
-                                        <div className="flex gap-1.5">
-                                            {isMuted && <MicOff className="w-4 h-4 text-red-400" />}
-                                            {isVideoOff && <VideoOff className="w-4 h-4 text-red-400" />}
-                                        </div>
-                                    </div>
-
-                                    {/* Remote peers */}
-                                    {peers.map(peer => (
-                                        <div key={peer.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarGradient(peer.name)}`}>
-                                                    {peer.name?.charAt(0).toUpperCase()}
-                                                </div>
-                                                <span className="text-sm font-medium text-gray-700">{peer.name}</span>
+                                    )}
+                                    {messages.map((msg, idx) => (
+                                        <div key={msg.id || idx} className={`flex flex-col ${msg.isLocal ? 'items-end' : 'items-start'} animate-slideInMsg`}>
+                                            <div className="flex items-center gap-1.5 mb-1">
+                                                {!msg.isLocal && (
+                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${getAvatarGradient(msg.senderName)}`}>
+                                                        {msg.senderName?.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <span className="text-[11px] text-gray-400 font-medium">{msg.isLocal ? 'You' : msg.senderName}</span>
                                             </div>
-                                            {isHost && (
-                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => handleForceMute(peer.id)} title="Force Mute" className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
-                                                        <MicOff className="w-3.5 h-3.5" />
-                                                    </button>
-                                                    <button onClick={() => handleForceVideoOff(peer.id)} title="Stop Video" className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
-                                                        <VideoOff className="w-3.5 h-3.5" />
-                                                    </button>
-                                                </div>
-                                            )}
+                                            <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[85%] break-words leading-relaxed ${msg.isLocal
+                                                ? 'bg-indigo-600 text-white rounded-br-sm shadow-md shadow-indigo-200/50'
+                                                : 'bg-gray-100 text-gray-700 rounded-bl-sm'}`}
+                                            >
+                                                {msg.message}
+                                            </div>
                                         </div>
                                     ))}
+                                    <div ref={messagesEndRef} />
                                 </div>
-                            </div>
-                        </div>
-                    ) : (
-                        /* Chat Tab */
-                        <>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-3 meeting-scroll">
-                                {messages.length === 0 && (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-300">
-                                        <MessageSquare className="w-10 h-10 mb-2 opacity-30" />
-                                        <p className="text-sm text-gray-400">No messages yet</p>
-                                    </div>
-                                )}
-                                {messages.map((msg, idx) => (
-                                    <div key={msg.id || idx} className={`flex flex-col ${msg.isLocal ? 'items-end' : 'items-start'} animate-slideInMsg`}>
-                                        <div className="flex items-center gap-1.5 mb-1">
-                                            {!msg.isLocal && (
-                                                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${getAvatarGradient(msg.senderName)}`}>
-                                                    {msg.senderName?.charAt(0).toUpperCase()}
-                                                </div>
-                                            )}
-                                            <span className="text-[11px] text-gray-400 font-medium">{msg.isLocal ? 'You' : msg.senderName}</span>
-                                        </div>
-                                        <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[85%] break-words leading-relaxed ${msg.isLocal
-                                            ? 'bg-indigo-600 text-white rounded-br-sm shadow-md shadow-indigo-200/50'
-                                            : 'bg-gray-100 text-gray-700 rounded-bl-sm'}`}
-                                        >
-                                            {msg.message}
-                                        </div>
-                                    </div>
-                                ))}
-                                <div ref={messagesEndRef} />
-                            </div>
-                            <form onSubmit={sendMessage} className="p-3 bg-gray-50/80 border-t border-gray-100 flex gap-2">
-                                <input
-                                    type="text"
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    placeholder="Type a message..."
-                                    className="flex-1 bg-white text-gray-700 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 border border-gray-200 placeholder-gray-400 min-w-0 transition-all"
-                                />
-                                <button type="submit" disabled={!chatInput.trim()} className="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 shadow-md shadow-indigo-200/50">
-                                    <Send className="w-4 h-4" />
-                                </button>
-                            </form>
-                        </>
-                    )}
-                </aside>
+                                <form onSubmit={sendMessage} className="p-3 bg-gray-50/80 border-t border-gray-100 flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={chatInput}
+                                        onChange={(e) => setChatInput(e.target.value)}
+                                        placeholder="Type a message..."
+                                        className="flex-1 bg-white text-gray-700 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 border border-gray-200 placeholder-gray-400 min-w-0 transition-all"
+                                    />
+                                    <button type="submit" disabled={!chatInput.trim()} className="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 shadow-md shadow-indigo-200/50">
+                                        <Send className="w-4 h-4" />
+                                    </button>
+                                </form>
+                            </>
+                        )}
+                    </aside>
+                )}
             </div>
 
             {/* ===== Toast Notification ===== */}
@@ -850,7 +853,29 @@ export default function Room() {
                         <MonitorUp className="w-5 h-5" />
                     </button>
 
-                    {/* Divider */}
+                    {/* Sidebar Toggles */}
+                    <button
+                        onClick={() => setActiveTab(activeTab === 'info' ? null : 'info')}
+                        className={`control-btn hidden md:block ${activeTab === 'info' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20 border-transparent hover:bg-indigo-600' : 'bg-white/60 hover:bg-white/90 text-gray-800 border-white/50'}`}
+                        title="Meeting Details"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                    <button
+                        onClick={() => setActiveTab(activeTab === 'participants' ? null : 'participants')}
+                        className={`control-btn ${activeTab === 'participants' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20 border-transparent hover:bg-indigo-600' : 'bg-white/60 hover:bg-white/90 text-gray-800 border-white/50'}`}
+                        title="Participants"
+                    >
+                        <Users className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => setActiveTab(activeTab === 'chat' ? null : 'chat')}
+                        className={`control-btn hidden md:block ${activeTab === 'chat' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20 border-transparent hover:bg-indigo-600' : 'bg-white/60 hover:bg-white/90 text-gray-800 border-white/50'}`}
+                        title="Chat"
+                    >
+                        <MessageSquare className="w-5 h-5" />
+                    </button>
+
                     <div className="w-px h-8 bg-gray-200 mx-1"></div>
 
                     <button
