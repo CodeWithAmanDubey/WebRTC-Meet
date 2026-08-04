@@ -114,12 +114,18 @@ io.on('connection', (socket) => {
   socket.on('end-meeting', async ({ roomId }) => {
     try {
       if (roomHosts[roomId] === socket.id) {
-        // Emit to all users in the room to end their session
-        socket.to(roomId).emit('meeting-ended');
+        // Emit to ALL users in the room (including the host themselves)
+        io.to(roomId).emit('meeting-ended');
 
-        // Clean up database 
-        await prisma.message.deleteMany({ where: { roomId } });
-        await prisma.room.delete({ where: { id: roomId } });
+        // Wait briefly to ensure sockets fire before DB drops constraint
+        setTimeout(async () => {
+          try {
+            await prisma.message.deleteMany({ where: { roomId } });
+            await prisma.room.delete({ where: { id: roomId } });
+          } catch (e) {
+            console.error('Cascade DB deletion issue', e);
+          }
+        }, 100);
 
         // Clean up in-memory states
         delete roomHosts[roomId];

@@ -358,7 +358,8 @@ export default function Room() {
     const handleEndMeeting = () => {
         if (window.confirm("Are you sure you want to end this meeting for everyone? The meeting code will permanently expire.")) {
             socketRef.current?.emit('end-meeting', { roomId });
-            navigate('/');
+            // We wait for the 'meeting-ended' socket event to arrive from the server 
+            // before navigating away so the socket stays open long enough to transmit.
         }
     };
 
