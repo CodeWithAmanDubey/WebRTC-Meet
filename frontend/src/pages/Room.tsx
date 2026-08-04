@@ -289,6 +289,11 @@ export default function Room() {
                 navigate('/');
             });
 
+            socket.on('invalid-meeting', () => {
+                alert('Invalid Meeting ID. This room does not exist.');
+                navigate('/');
+            });
+
             // Host Control Listeners
             socket.on('force-mute', () => {
                 if (localStreamRef.current) {

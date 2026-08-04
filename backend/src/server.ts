@@ -57,7 +57,13 @@ io.on('connection', (socket) => {
   socket.on('request-join', async ({ roomId, userId, name }) => {
     try {
       const room = await prisma.room.findUnique({ where: { id: roomId } });
-      const isHost = room?.hostId === userId;
+
+      if (!room) {
+        socket.emit('invalid-meeting');
+        return;
+      }
+
+      const isHost = room.hostId === userId;
       const userObj = { socketId: socket.id, userId, name };
 
       if (isHost) {
