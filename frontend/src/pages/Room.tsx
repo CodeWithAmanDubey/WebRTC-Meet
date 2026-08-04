@@ -44,6 +44,28 @@ export default function Room() {
     const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
     const [showMeetingDetails, setShowMeetingDetails] = useState(false);
 
+    // Control bar visibility (auto-hide on idle)
+    const [isControlBarVisible, setIsControlBarVisible] = useState(true);
+    const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        const handleMouseMove = () => {
+            setIsControlBarVisible(true);
+            if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
+            idleTimeoutRef.current = setTimeout(() => {
+                setIsControlBarVisible(false);
+            }, 3000);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        handleMouseMove(); // Start timer immediately
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            if (idleTimeoutRef.current) clearTimeout(idleTimeoutRef.current);
+        };
+    }, []);
+
     // Chat states
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chatInput, setChatInput] = useState('');
@@ -528,7 +550,7 @@ export default function Room() {
             <div className="flex flex-1 min-h-0 p-4 gap-4">
 
                 {/* ===== Left: Video Area ===== */}
-                <div className="flex-1 flex flex-col gap-3 min-w-0 animate-slideUp pb-16 justify-center">
+                <div className="flex-1 flex flex-col gap-3 min-w-0 animate-slideUp pb-32 justify-center">
                     {/* Main / Pinned Video */}
                     <div className="relative w-full max-w-5xl mx-auto aspect-[4/3] video-tile bg-black/5 border border-gray-200/80 shadow-lg min-h-0 cursor-pointer overflow-hidden rounded-2xl" onClick={() => setPinnedId(pinnedId === 'local' ? 'local' : pinnedId)}>
                         {pinnedId === 'local' ? (
@@ -829,8 +851,8 @@ export default function Room() {
             )}
 
             {/* ===== Bottom Control Bar ===== */}
-            <footer className="fixed bottom-5 inset-x-0 z-50 flex justify-center pointer-events-none animate-slideUp stagger-4">
-                <div className="bg-white/90 backdrop-blur-xl border border-gray-200/60 rounded-full shadow-2xl px-6 py-3 flex items-center gap-3 pointer-events-auto">
+            <footer className={`fixed bottom-6 inset-x-0 z-50 flex justify-center pointer-events-none transition-all duration-700 ease-in-out ${isControlBarVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+                <div className={`bg-white/30 backdrop-blur-3xl border border-white/50 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.1)] px-8 py-3 flex items-center gap-2.5 transition-all duration-300 hover:bg-white/40 ${isControlBarVisible ? 'pointer-events-auto' : 'pointer-events-none'}`}>
                     <button
                         onClick={toggleMute}
                         className={`control-btn ${isMuted ? 'bg-red-100 text-red-600 shadow-md shadow-red-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
