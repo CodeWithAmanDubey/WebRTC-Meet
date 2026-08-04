@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -41,7 +41,9 @@ export default function Room() {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chatInput, setChatInput] = useState('');
     const [isChatOpen, setIsChatOpen] = useState(false);
+    const [isScreenSharing, setIsScreenSharing] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const originalVideoTrackRef = useRef<MediaStreamTrack | null>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -132,6 +134,11 @@ export default function Room() {
             }
 
             localStreamRef.current = localStream;
+            const originalVideo = localStream.getVideoTracks()[0];
+            if (originalVideo) {
+                originalVideoTrackRef.current = originalVideo;
+            }
+
             if (localVideoRef.current) {
                 localVideoRef.current.srcObject = localStream;
             }
@@ -312,6 +319,60 @@ export default function Room() {
         setChatInput('');
     };
 
+    const revertToCamera = useCallback(() => {
+        const cameraTrack = originalVideoTrackRef.current;
+        Object.values(peerConnectionsRef.current).forEach(pc => {
+            const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+            if (sender && cameraTrack) sender.replaceTrack(cameraTrack);
+        });
+
+        if (localStreamRef.current) {
+            const currentVideo = localStreamRef.current.getVideoTracks()[0];
+            if (currentVideo && currentVideo !== cameraTrack) {
+                currentVideo.stop();
+                localStreamRef.current.removeTrack(currentVideo);
+            }
+            if (cameraTrack) {
+                localStreamRef.current.addTrack(cameraTrack);
+                setIsVideoOff(!cameraTrack.enabled);
+            } else {
+                setIsVideoOff(true);
+            }
+        }
+        setIsScreenSharing(false);
+    }, []);
+
+    const toggleScreenShare = async () => {
+        if (!isScreenSharing) {
+            try {
+                const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                const screenTrack = screenStream.getVideoTracks()[0];
+
+                Object.values(peerConnectionsRef.current).forEach(pc => {
+                    const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+                    if (sender) sender.replaceTrack(screenTrack);
+                });
+
+                if (localStreamRef.current) {
+                    const oldVideo = localStreamRef.current.getVideoTracks()[0];
+                    if (oldVideo) localStreamRef.current.removeTrack(oldVideo);
+                    localStreamRef.current.addTrack(screenTrack);
+                }
+
+                setIsScreenSharing(true);
+                setIsVideoOff(false);
+
+                screenTrack.onended = () => {
+                    revertToCamera();
+                };
+            } catch (err) {
+                console.error("Screen sharing cancelled or failed", err);
+            }
+        } else {
+            revertToCamera();
+        }
+    };
+
     // Calculate grid columns based on participant count
     const totalParticipants = 1 + peers.length;
     const gridCols = totalParticipants <= 1 ? 'grid-cols-1' :
@@ -341,7 +402,7 @@ export default function Room() {
                             autoPlay
                             playsInline
                             muted
-                            className={`w-full h-full object-cover -scale-x-100 ${isVideoOff ? 'hidden' : ''}`}
+                            className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
                         />
                         {isVideoOff && (
                             <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
@@ -412,6 +473,12 @@ export default function Room() {
                     className={`p-4 rounded-full transition-all shadow-lg ${isVideoOff ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
                 >
                     {isVideoOff ? <VideoOff className="w-5 h-5" /> : <VideoIcon className="w-5 h-5" />}
+                </button>
+                <button
+                    onClick={toggleScreenShare}
+                    className={`p-4 rounded-full transition-all shadow-lg ${isScreenSharing ? 'bg-indigo-600 text-white shadow-[0_0_15px_rgba(79,70,229,0.5)]' : 'bg-gray-700 hover:bg-gray-600 text-gray-200'}`}
+                >
+                    <MonitorUp className="w-5 h-5" />
                 </button>
                 <button
                     onClick={() => setIsChatOpen(!isChatOpen)}
