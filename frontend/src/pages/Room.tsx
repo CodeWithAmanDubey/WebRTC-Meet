@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle, Info, Copy } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle, Info, Copy, X } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -49,8 +49,14 @@ export default function Room() {
     const [chatInput, setChatInput] = useState('');
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [isScreenSharing, setIsScreenSharing] = useState(false);
+    const [toastMessage, setToastMessage] = useState<{ sender: string, text: string } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const originalVideoTrackRef = useRef<MediaStreamTrack | null>(null);
+
+    const isChatOpenRef = useRef(isChatOpen);
+    useEffect(() => {
+        isChatOpenRef.current = isChatOpen;
+    }, [isChatOpen]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -248,6 +254,10 @@ export default function Room() {
             // When we receive a chat message
             socket.on('chat-message', (data: ChatMessage) => {
                 setMessages(prev => [...prev, data]);
+                if (!isChatOpenRef.current) {
+                    setToastMessage({ sender: data.senderName, text: data.message });
+                    setTimeout(() => setToastMessage(null), 4500);
+                }
             });
 
             // When a user leaves
@@ -552,8 +562,11 @@ export default function Room() {
                 {/* Participants Sidebar (Host Only) */}
                 {isHost && isParticipantsOpen && (
                     <aside className="w-80 shrink-0 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl flex flex-col overflow-hidden z-10 hidden md:flex">
-                        <div className="p-4 border-b border-gray-800 bg-gray-900/50">
+                        <div className="p-4 border-b border-gray-800 bg-gray-900/50 flex justify-between items-center">
                             <h2 className="font-semibold text-white">Participants & Waitlist</h2>
+                            <button onClick={() => setIsParticipantsOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-6 flex flex-col">
                             {/* Pending Users */}
@@ -603,8 +616,11 @@ export default function Room() {
                 {/* Chat Sidebar */}
                 {isChatOpen && (
                     <aside className="w-80 shrink-0 bg-gray-900 rounded-2xl border border-gray-800 shadow-xl flex flex-col overflow-hidden z-10 hidden md:flex">
-                        <div className="p-4 border-b border-gray-800 bg-gray-900/50">
+                        <div className="p-4 border-b border-gray-800 bg-gray-900/50 flex justify-between items-center">
                             <h2 className="font-semibold text-white">In-call Messages</h2>
+                            <button onClick={() => setIsChatOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-md hover:bg-gray-800 transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-4">
                             {messages.map((msg, idx) => (
@@ -632,6 +648,19 @@ export default function Room() {
                     </aside>
                 )}
             </div>
+
+            {toastMessage && (
+                <div className="fixed bottom-24 right-4 bg-gray-900 border border-gray-800 rounded-lg shadow-2xl p-4 z-50 animate-in slide-in-from-right-4 fade-in max-w-xs flex items-start gap-3">
+                    <MessageSquare className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+                    <div className="flex flex-col overflow-hidden flex-1">
+                        <span className="text-sm font-semibold text-white truncate">{toastMessage.sender}</span>
+                        <span className="text-sm text-gray-300 truncate">{toastMessage.text}</span>
+                    </div>
+                    <button onClick={() => setToastMessage(null)} className="text-gray-500 hover:text-white shrink-0">
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
             <footer className="fixed bottom-0 left-0 right-0 h-20 bg-gray-900/90 backdrop-blur-md border-t border-gray-800 flex justify-center items-center gap-4 px-4 shadow-2xl z-50">
                 <button
