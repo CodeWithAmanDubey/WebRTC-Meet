@@ -17,8 +17,19 @@ export const createRoom = async (req: AuthRequest, res: Response) => {
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
+        let roomId = '';
+        let roomExists = true;
+        while (roomExists) {
+            roomId = Math.floor(100000 + Math.random() * 900000).toString();
+            const existingRoom = await prisma.room.findUnique({ where: { id: roomId } });
+            if (!existingRoom) {
+                roomExists = false;
+            }
+        }
+
         const room = await prisma.room.create({
             data: {
+                id: roomId,
                 name: name || 'Untitled Room',
                 hostId: userId,
             }
