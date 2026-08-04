@@ -287,7 +287,7 @@ export default function Room() {
                         autoPlay
                         playsInline
                         muted
-                        className={`w-full h-full object-cover ${isVideoOff ? 'hidden' : ''}`}
+                        className={`w-full h-full object-cover -scale-x-100 ${isVideoOff ? 'hidden' : ''}`}
                     />
                     {isVideoOff && (
                         <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
