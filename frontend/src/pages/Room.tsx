@@ -308,6 +308,13 @@ export default function Room() {
         };
     }, [roomId, user, token, createPeerConnection]);
 
+    // Force bind the video element when the waiting screen unmounts and the video element mounts
+    useEffect(() => {
+        if (waitingStatus === 'accepted' && localVideoRef.current && localStreamRef.current) {
+            localVideoRef.current.srcObject = localStreamRef.current;
+        }
+    }, [waitingStatus]);
+
     const toggleMute = () => {
         if (localStreamRef.current) {
             const audioTrack = localStreamRef.current.getAudioTracks()[0];
