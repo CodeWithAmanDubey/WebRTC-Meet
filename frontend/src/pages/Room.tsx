@@ -552,7 +552,7 @@ export default function Room() {
                 {/* ===== Left: Video Area ===== */}
                 <div className="flex-1 flex flex-col gap-3 min-w-0 animate-slideUp pb-32 justify-center">
                     {/* Main / Pinned Video */}
-                    <div className="relative w-full max-w-5xl mx-auto aspect-[4/3] video-tile bg-black/5 border border-gray-200/80 shadow-lg min-h-0 cursor-pointer overflow-hidden rounded-2xl" onClick={() => setPinnedId(pinnedId === 'local' ? 'local' : pinnedId)}>
+                    <div className="relative w-full max-w-5xl mx-auto aspect-video video-tile bg-gray-900 border border-gray-800 shadow-xl min-h-0 cursor-pointer overflow-hidden rounded-2xl" onClick={() => setPinnedId(pinnedId === 'local' ? 'local' : pinnedId)}>
                         {pinnedId === 'local' ? (
                             <>
                                 <video
@@ -560,10 +560,10 @@ export default function Room() {
                                     autoPlay
                                     playsInline
                                     muted
-                                    className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
+                                    className={`w-full h-full object-contain ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
                                 />
                                 {isVideoOff && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
                                         <div className={`w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-lg animate-float ${getAvatarGradient(user?.name || 'U')}`}>
                                             {user?.name?.charAt(0).toUpperCase()}
                                         </div>
@@ -579,7 +579,7 @@ export default function Room() {
                             <>
                                 {peers.filter(p => p.id === pinnedId).map(peer => (
                                     <React.Fragment key={peer.id}>
-                                        <RemoteVideo stream={peer.stream} name={peer.name} />
+                                        <RemoteVideo stream={peer.stream} name={peer.name} isMain={true} />
                                         <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
                                             <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
                                             {peer.name}
@@ -925,7 +925,7 @@ export default function Room() {
 }
 
 // Separate component to properly attach MediaStream to video element
-function RemoteVideo({ stream, name }: { stream: MediaStream; name: string }) {
+function RemoteVideo({ stream, name, isMain = false }: { stream: MediaStream; name: string; isMain?: boolean }) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const [hasVideo, setHasVideo] = useState(false);
 
@@ -958,20 +958,20 @@ function RemoteVideo({ stream, name }: { stream: MediaStream; name: string }) {
     }, [stream]);
 
     return (
-        <>
+        <div className={`w-full h-full relative overflow-hidden ${isMain ? 'rounded-2xl bg-gray-900 border-none' : 'rounded-xl bg-gray-100'}`}>
             <video
                 ref={videoRef}
                 autoPlay
                 playsInline
-                className={`w-full h-full object-cover ${hasVideo ? '' : 'hidden'}`}
+                className={`w-full h-full ${hasVideo ? '' : 'hidden'} ${isMain ? 'object-contain' : 'object-cover'}`}
             />
             {!hasVideo && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                    <span className="text-3xl font-bold bg-indigo-600/30 w-24 h-24 flex items-center justify-center rounded-full text-white border-2 border-indigo-500/30">
+                <div className={`absolute inset-0 flex items-center justify-center ${isMain ? 'bg-gray-900' : 'bg-gray-800'}`}>
+                    <span className={`font-bold flex items-center justify-center rounded-full text-white ${isMain ? 'text-5xl w-32 h-32 bg-indigo-600 border-4' : 'text-3xl w-24 h-24 bg-indigo-600/30 border-2'} border-indigo-500/30`}>
                         {name.charAt(0).toUpperCase()}
                     </span>
                 </div>
             )}
-        </>
+        </div>
     );
 }
