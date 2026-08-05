@@ -33,8 +33,8 @@ export default function Room() {
     const { user, token } = useAuth();
     const navigate = useNavigate();
 
-    const [isMuted, setIsMuted] = useState(false);
-    const [isVideoOff, setIsVideoOff] = useState(false);
+    const [isMuted, setIsMuted] = useState(true);
+    const [isVideoOff, setIsVideoOff] = useState(true);
     const [peers, setPeers] = useState<PeerData[]>([]);
 
     // Phase 11: Host Controls & Waiting Room states
@@ -169,16 +169,24 @@ export default function Room() {
             }
 
             localStreamRef.current = localStream;
+
+            // Turn off camera and mic tracks by default
             const originalVideo = localStream.getVideoTracks()[0];
             if (originalVideo) {
                 originalVideoTrackRef.current = originalVideo;
+                originalVideo.enabled = false;
+            }
+
+            const originalAudio = localStream.getAudioTracks()[0];
+            if (originalAudio) {
+                originalAudio.enabled = false;
             }
 
             if (localVideoRef.current) {
                 localVideoRef.current.srcObject = localStream;
             }
 
-            // Auto-detect if we have no video track
+            // Auto-detect if we have no video track at all
             const hasVideo = localStream.getVideoTracks().length > 0;
             if (!hasVideo) {
                 setIsVideoOff(true);
