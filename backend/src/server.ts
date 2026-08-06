@@ -18,6 +18,7 @@ const port = process.env.PORT || 8000;
 const allowedOrigins: string[] = [
   'http://localhost:5173',
   'http://localhost:3000',
+  'https://web-rtc-meet.vercel.app',
   process.env.FRONTEND_URL || ''
 ].filter(url => url.length > 0);
 
