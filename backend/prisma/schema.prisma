@@ -39,3 +39,12 @@ model Message {
   content   String
   timestamp DateTime @default(now())
 }
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  code      String
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}

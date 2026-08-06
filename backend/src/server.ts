@@ -3,12 +3,12 @@ import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
-
-import authRoutes from './routes/auth';
-import roomRoutes from './routes/room';
 
 dotenv.config();
+
+import { PrismaClient } from '@prisma/client';
+import authRoutes from './routes/auth';
+import roomRoutes from './routes/room';
 
 const prisma = new PrismaClient();
 const app = express();

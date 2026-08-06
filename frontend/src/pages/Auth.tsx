@@ -1,38 +1,89 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogIn, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Key } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 export default function AuthPage() {
     const [isLogin, setIsLogin] = useState(true);
+    // signupStep: 1 = Name/Email, 2 = OTP, 3 = Password
+    const [signupStep, setSignupStep] = useState(1);
+
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
+    const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
 
     const { login } = useAuth();
     const navigate = useNavigate();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-
-        const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
-        const payload = isLogin ? { email, password } : { name, email, password };
-
         try {
-            const res = await fetch(`${BACKEND_URL}${endpoint}`, {
+            const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({ email, password })
             });
-
             const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Authentication failed');
 
-            if (!res.ok) {
-                throw new Error(data.error || 'Authentication failed');
-            }
+            login(data.token, data.user);
+            navigate('/');
+        } catch (err: any) {
+            setError(err.message);
+        }
+    };
+
+    const handleSendOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/auth/send-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }) // Backend checks if user exists before sending OTP
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+
+            setSignupStep(2);
+        } catch (err: any) {
+            setError(err.message);
+        }
+    };
+
+    const handleVerifyOtp = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/auth/verify-otp`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, code: otp })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Invalid OTP');
+
+            setSignupStep(3);
+        } catch (err: any) {
+            setError(err.message);
+        }
+    };
+
+    const handleRegisterSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        try {
+            const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Registration failed');
 
             login(data.token, data.user);
             navigate('/');
@@ -66,57 +117,151 @@ export default function AuthPage() {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
-                    {!isLogin && (
+                {isLogin ? (
+                    <form onSubmit={handleLoginSubmit} className="space-y-5 relative z-10">
                         <div>
-                            <label className="block text-sm font-medium text-gray-300 mb-1">Display Name</label>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Email Address</label>
                             <input
-                                type="text"
-                                required={!isLogin}
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                type="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                                placeholder="Jane Doe"
+                                placeholder="jane@example.com"
                             />
                         </div>
-                    )}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Email Address</label>
-                        <input
-                            type="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                            placeholder="jane@example.com"
-                        />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                            <input
+                                type="password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 shadow-lg shadow-indigo-600/30"
+                        >
+                            <LogIn className="w-5 h-5" />
+                            Sign In
+                        </button>
+                    </form>
+                ) : (
+                    <div className="relative z-10">
+                        {signupStep === 1 && (
+                            <form onSubmit={handleSendOtp} className="space-y-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Display Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
+                                        className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                        placeholder="Jane Doe"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Email Address</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                        placeholder="jane@example.com"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 shadow-lg shadow-indigo-600/30"
+                                >
+                                    <Mail className="w-5 h-5" />
+                                    Send Verification Code
+                                </button>
+                            </form>
+                        )}
+
+                        {signupStep === 2 && (
+                            <form onSubmit={handleVerifyOtp} className="space-y-5">
+                                <p className="text-sm text-gray-300 mb-4">
+                                    We've sent a 6-digit verification code to <span className="font-semibold text-indigo-400">{email}</span>. Please enter it below.
+                                </p>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Verification Code</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        maxLength={6}
+                                        value={otp}
+                                        onChange={(e) => setOtp(e.target.value)}
+                                        className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-center tracking-widest text-lg font-mono placeholder:tracking-normal placeholder:font-sans"
+                                        placeholder="123456"
+                                    />
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSignupStep(1)}
+                                        className="w-full bg-gray-700 hover:bg-gray-600 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4"
+                                    >
+                                        Back
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 shadow-lg shadow-indigo-600/30"
+                                    >
+                                        <Key className="w-5 h-5" />
+                                        Verify Code
+                                    </button>
+                                </div>
+                            </form>
+                        )}
+
+                        {signupStep === 3 && (
+                            <form onSubmit={handleRegisterSubmit} className="space-y-5">
+                                <div className="bg-green-500/10 border border-green-500/50 text-green-400 px-4 py-3 rounded-lg text-sm mb-6 flex items-center">
+                                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.707 16.707a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L9 14.586l7.293-7.293a1 1 0 011.414 1.414l-8 8z" clipRule="evenodd" />
+                                    </svg>
+                                    Email verified! One last step.
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-300 mb-1">Set a Password</label>
+                                    <input
+                                        type="password"
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 shadow-lg shadow-indigo-600/30"
+                                >
+                                    <UserPlus className="w-5 h-5" />
+                                    Create Account
+                                </button>
+                            </form>
+                        )}
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-1">Password</label>
-                        <input
-                            type="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="w-full bg-gray-900/50 border border-gray-700 rounded-lg px-4 py-3 text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                            placeholder="••••••••"
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 shadow-lg shadow-indigo-600/30"
-                    >
-                        {isLogin ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
-                        {isLogin ? 'Sign In' : 'Create Account'}
-                    </button>
-                </form>
+                )}
 
                 <div className="mt-8 text-center relative z-10 border-t border-gray-700 pt-6">
                     <p className="text-gray-400 text-sm">
                         {isLogin ? "Don't have an account?" : "Already have an account?"}
                         <button
                             type="button"
-                            onClick={() => setIsLogin(!isLogin)}
+                            onClick={() => {
+                                setIsLogin(!isLogin);
+                                setSignupStep(1);
+                                setError('');
+                            }}
                             className="ml-2 text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
                         >
                             {isLogin ? 'Sign up' : 'Sign in'}
