@@ -92,7 +92,6 @@ export default function AuthPage() {
         }
     };
 
-    // Animation variants
     const panelVariants = {
         hidden: { opacity: 0, x: -20 },
         visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: "easeOut" } },
@@ -100,23 +99,23 @@ export default function AuthPage() {
     };
 
     return (
-        <div className="min-h-screen w-full flex bg-gray-950 font-sans overflow-hidden">
+        <div className="min-h-screen w-full flex bg-[#0B0E14] font-sans overflow-hidden">
 
-            {/* Left Promotional Banner (Inspired by Zoom) */}
-            <div className="hidden lg:flex w-1/2 relative bg-indigo-600 overflow-hidden items-center justify-center p-12 lg:p-20">
+            {/* Left Promotional Banner */}
+            <div className="hidden lg:flex w-1/2 relative overflow-hidden items-center justify-center p-12 lg:p-20 bg-gradient-to-br from-[#5B52E5] to-[#4B7BFF]">
                 {/* Animated Background Elements */}
                 <motion.div
                     animate={{ rotate: 360, scale: [1, 1.1, 1] }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute top-[-20%] left-[-10%] w-[140%] h-[140%] bg-gradient-to-tr from-blue-600 via-indigo-500 to-purple-600 opacity-80 blur-[100px] rounded-full"
+                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+                    className="absolute top-[-20%] left-[-10%] w-[140%] h-[140%] bg-white/5 blur-[100px] rounded-full pointer-events-none"
                 />
                 <motion.div
                     animate={{ y: [0, -30, 0] }}
                     transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                    className="absolute bottom-10 right-10 w-96 h-96 bg-blue-300 opacity-20 blur-[80px] rounded-full"
+                    className="absolute bottom-10 right-10 w-96 h-96 bg-white/10 blur-[80px] rounded-full pointer-events-none"
                 />
 
-                <div className="relative z-10 w-full max-w-lg text-white">
+                <div className="relative z-10 w-full max-w-lg text-[#FFFFFF]">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -124,30 +123,30 @@ export default function AuthPage() {
                     >
                         <div className="flex items-center gap-3 mb-8">
                             <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl shadow-lg">
-                                <Video className="w-10 h-10 text-white" />
+                                <Video className="w-10 h-10 text-[#FFFFFF]" />
                             </div>
-                            <h1 className="text-4xl font-black tracking-tight">Zoom<span className="text-blue-200">Clone</span></h1>
+                            <h1 className="text-4xl font-black tracking-tight text-[#FFFFFF]">Zoom<span className="text-[#FFFFFF]/70">Clone</span></h1>
                         </div>
 
-                        <h2 className="text-5xl font-extrabold mb-6 leading-tight">
+                        <h2 className="text-5xl font-extrabold mb-6 leading-tight text-[#FFFFFF]">
                             Connect from anywhere, with <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">crystal clarity.</span>
                         </h2>
-                        <p className="text-lg text-indigo-100 mb-12 leading-relaxed">
+                        <p className="text-lg text-[#FFFFFF]/80 mb-12 leading-relaxed font-medium">
                             Experience the next generation of seamless WebRTC video conferencing. No downloads required, just share a link and collaborate.
                         </p>
 
                         <div className="space-y-6">
                             <div className="flex items-center gap-4">
-                                <div className="p-2 bg-indigo-500/50 rounded-lg"><Zap className="w-6 h-6 text-blue-200" /></div>
-                                <p className="text-indigo-50 font-medium">Ultra-low latency streaming</p>
+                                <div className="p-2 bg-white/10 rounded-lg"><Zap className="w-6 h-6 text-[#FFFFFF]" /></div>
+                                <p className="text-[#FFFFFF] font-medium">Ultra-low latency streaming</p>
                             </div>
                             <div className="flex items-center gap-4">
-                                <div className="p-2 bg-indigo-500/50 rounded-lg"><Shield className="w-6 h-6 text-blue-200" /></div>
-                                <p className="text-indigo-50 font-medium">End-to-end encryption</p>
+                                <div className="p-2 bg-white/10 rounded-lg"><Shield className="w-6 h-6 text-[#FFFFFF]" /></div>
+                                <p className="text-[#FFFFFF] font-medium">End-to-end encryption</p>
                             </div>
                             <div className="flex items-center gap-4">
-                                <div className="p-2 bg-indigo-500/50 rounded-lg"><Sparkles className="w-6 h-6 text-blue-200" /></div>
-                                <p className="text-indigo-50 font-medium">AI-powered noise cancellation</p>
+                                <div className="p-2 bg-white/10 rounded-lg"><Sparkles className="w-6 h-6 text-[#FFFFFF]" /></div>
+                                <p className="text-[#FFFFFF] font-medium">AI-powered noise cancellation</p>
                             </div>
                         </div>
                     </motion.div>
@@ -155,40 +154,38 @@ export default function AuthPage() {
             </div>
 
             {/* Right Authentication Form Pane */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative">
-                {/* Subtle mobile background glow */}
-                <div className="absolute top-0 right-0 p-12 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none lg:hidden"></div>
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative bg-[#0B0E14]">
 
                 <div className="w-full max-w-md">
 
                     {/* Header Tabs (Sign In / Sign Up) */}
-                    <div className="flex bg-gray-900 border border-gray-800 p-1 rounded-xl mb-8 relative">
+                    <div className="flex bg-[#1A1E27] p-1.5 rounded-xl mb-8 relative">
                         {/* Animated slider background */}
                         <motion.div
-                            className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-indigo-600 rounded-lg shadow-lg pointer-events-none"
+                            className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-[#5B52E5] rounded-lg shadow-md pointer-events-none"
                             initial={false}
                             animate={{ x: isLogin ? 0 : '100%' }}
                             transition={{ type: "spring", stiffness: 400, damping: 30 }}
                         />
                         <button
                             onClick={() => { setIsLogin(true); setError(''); }}
-                            className={`flex-1 py-2.5 text-sm font-semibold z-10 transition-colors ${isLogin ? 'text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                            className={`flex-1 py-2.5 text-sm font-semibold z-10 transition-colors ${isLogin ? 'text-[#FFFFFF]' : 'text-[#9CA3AF] hover:text-[#FFFFFF]'}`}
                         >
                             Sign In
                         </button>
                         <button
                             onClick={() => { setIsLogin(false); setSignupStep(1); setError(''); }}
-                            className={`flex-1 py-2.5 text-sm font-semibold z-10 transition-colors ${!isLogin ? 'text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                            className={`flex-1 py-2.5 text-sm font-semibold z-10 transition-colors ${!isLogin ? 'text-[#FFFFFF]' : 'text-[#9CA3AF] hover:text-[#FFFFFF]'}`}
                         >
                             Sign Up
                         </button>
                     </div>
 
                     <div className="mb-8">
-                        <h2 className="text-3xl font-bold text-white mb-2">
+                        <h2 className="text-3xl font-bold text-[#FFFFFF] mb-2">
                             {isLogin ? 'Welcome back' : 'Create an account'}
                         </h2>
-                        <p className="text-gray-400">
+                        <p className="text-[#9CA3AF]">
                             {isLogin ? 'Enter your details to access your account' : 'Start your journey with ZoomClone today'}
                         </p>
                     </div>
@@ -200,7 +197,7 @@ export default function AuthPage() {
                                 initial={{ opacity: 0, y: -10, height: 0 }}
                                 animate={{ opacity: 1, y: 0, height: 'auto' }}
                                 exit={{ opacity: 0, y: -10, height: 0 }}
-                                className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl text-sm mb-6 flex items-center shadow-lg"
+                                className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl text-sm mb-6 flex items-center shadow-lg overflow-hidden"
                             >
                                 <Shield className="w-5 h-5 mr-3 flex-shrink-0" />
                                 <span>{error}</span>
@@ -221,22 +218,22 @@ export default function AuthPage() {
                                     className="space-y-5"
                                 >
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1.5 ml-1">Email address</label>
+                                        <label className="block text-sm font-medium text-[#9CA3AF] mb-1.5 ml-1">Email address</label>
                                         <input
                                             type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                                            className="w-full bg-[#F0F4F8] border-2 border-transparent rounded-xl px-4 py-3.5 text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#5B52E5] focus:ring-4 focus:ring-[#5B52E5]/20 transition-all font-medium"
                                             placeholder="Enter your email"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1.5 ml-1">Password</label>
+                                        <label className="block text-sm font-medium text-[#9CA3AF] mb-1.5 ml-1">Password</label>
                                         <input
                                             type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                                            className="w-full bg-[#F0F4F8] border-2 border-transparent rounded-xl px-4 py-3.5 text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#5B52E5] focus:ring-4 focus:ring-[#5B52E5]/20 transition-all font-medium"
                                             placeholder="••••••••"
                                         />
                                     </div>
-                                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] active:scale-[0.98] mt-4 flex justify-center items-center gap-2">
+                                    <button type="submit" className="w-full bg-[#5B52E5] hover:bg-[#4B7BFF] text-[#FFFFFF] font-semibold py-3.5 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(91,82,229,0.4)] hover:shadow-[0_0_25px_rgba(75,123,255,0.6)] active:scale-[0.98] mt-4 flex justify-center items-center gap-2">
                                         <LogIn className="w-5 h-5" /> Sign In
                                     </button>
                                 </motion.form>
@@ -248,22 +245,22 @@ export default function AuthPage() {
                                         {signupStep === 1 && (
                                             <motion.form key="step1" variants={panelVariants} initial="hidden" animate="visible" exit="exit" onSubmit={handleSendOtp} className="space-y-5">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-300 mb-1.5 ml-1">Full Name</label>
+                                                    <label className="block text-sm font-medium text-[#9CA3AF] mb-1.5 ml-1">Full Name</label>
                                                     <input
                                                         type="text" required value={name} onChange={(e) => setName(e.target.value)}
-                                                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                                                        className="w-full bg-[#F0F4F8] border-2 border-transparent rounded-xl px-4 py-3.5 text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#5B52E5] focus:ring-4 focus:ring-[#5B52E5]/20 transition-all font-medium"
                                                         placeholder="John Doe"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-300 mb-1.5 ml-1">Email address</label>
+                                                    <label className="block text-sm font-medium text-[#9CA3AF] mb-1.5 ml-1">Email address</label>
                                                     <input
                                                         type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
-                                                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                                                        className="w-full bg-[#F0F4F8] border-2 border-transparent rounded-xl px-4 py-3.5 text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#5B52E5] focus:ring-4 focus:ring-[#5B52E5]/20 transition-all font-medium"
                                                         placeholder="Enter your email"
                                                     />
                                                 </div>
-                                                <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] active:scale-[0.98] mt-4 flex justify-center items-center gap-2">
+                                                <button type="submit" className="w-full bg-[#5B52E5] hover:bg-[#4B7BFF] text-[#FFFFFF] font-semibold py-3.5 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(91,82,229,0.4)] hover:shadow-[0_0_25px_rgba(75,123,255,0.6)] active:scale-[0.98] mt-4 flex justify-center items-center gap-2">
                                                     <Mail className="w-5 h-5" /> Continue with Email
                                                 </button>
                                             </motion.form>
@@ -271,23 +268,23 @@ export default function AuthPage() {
 
                                         {signupStep === 2 && (
                                             <motion.form key="step2" variants={panelVariants} initial="hidden" animate="visible" exit="exit" onSubmit={handleVerifyOtp} className="space-y-5">
-                                                <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mb-2">
-                                                    <p className="text-sm text-indigo-200">
-                                                        We sent a 6-digit verification code to <br /><span className="text-white font-bold">{email}</span>
+                                                <div className="bg-[#5B52E5]/10 border border-[#5B52E5]/30 rounded-xl p-4 mb-2">
+                                                    <p className="text-sm text-[#9CA3AF]">
+                                                        We sent a 6-digit verification code to <br /><span className="text-[#FFFFFF] font-bold">{email}</span>
                                                     </p>
                                                 </div>
                                                 <div>
                                                     <input
                                                         type="text" required maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                                                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-4 text-white text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                                                        className="w-full bg-[#F0F4F8] border-2 border-transparent rounded-xl px-4 py-4 text-[#111827] text-center text-2xl tracking-[0.5em] font-mono focus:outline-none focus:border-[#5B52E5] focus:ring-4 focus:ring-[#5B52E5]/20 transition-all font-bold"
                                                         placeholder="••••••"
                                                     />
                                                 </div>
                                                 <div className="flex gap-3 mt-2">
-                                                    <button type="button" onClick={() => setSignupStep(1)} className="w-1/3 bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3.5 px-4 rounded-xl transition-colors">
+                                                    <button type="button" onClick={() => setSignupStep(1)} className="w-1/3 bg-[#1A1E27] hover:bg-[#1A1E27]/80 text-[#FFFFFF] font-semibold py-3.5 px-4 rounded-xl transition-colors">
                                                         Back
                                                     </button>
-                                                    <button type="submit" className="w-2/3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] active:scale-[0.98] flex justify-center items-center gap-2">
+                                                    <button type="submit" className="w-2/3 bg-[#5B52E5] hover:bg-[#4B7BFF] text-[#FFFFFF] font-semibold py-3.5 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(91,82,229,0.4)] hover:shadow-[0_0_25px_rgba(75,123,255,0.6)] active:scale-[0.98] flex justify-center items-center gap-2">
                                                         <Key className="w-5 h-5" /> Verify
                                                     </button>
                                                 </div>
@@ -296,19 +293,19 @@ export default function AuthPage() {
 
                                         {signupStep === 3 && (
                                             <motion.form key="step3" variants={panelVariants} initial="hidden" animate="visible" exit="exit" onSubmit={handleRegisterSubmit} className="space-y-5">
-                                                <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-4 py-3 rounded-xl text-sm mb-4 flex items-center shadow-lg">
-                                                    <Sparkles className="w-5 h-5 mr-3 flex-shrink-0" />
+                                                <div className="bg-[#5B52E5]/10 border border-[#5B52E5]/30 text-[#FFFFFF] px-4 py-3 rounded-xl text-sm mb-4 flex items-center shadow-lg">
+                                                    <Sparkles className="w-5 h-5 mr-3 flex-shrink-0 text-[#4B7BFF]" />
                                                     <span>Email verified completely! Just one last step.</span>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-300 mb-1.5 ml-1">Create Password</label>
+                                                    <label className="block text-sm font-medium text-[#9CA3AF] mb-1.5 ml-1">Create Password</label>
                                                     <input
                                                         type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-                                                        className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-3.5 text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all shadow-sm"
+                                                        className="w-full bg-[#F0F4F8] border-2 border-transparent rounded-xl px-4 py-3.5 text-[#111827] placeholder-[#9CA3AF] focus:outline-none focus:border-[#5B52E5] focus:ring-4 focus:ring-[#5B52E5]/20 transition-all font-medium"
                                                         placeholder="••••••••"
                                                     />
                                                 </div>
-                                                <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_25px_rgba(79,70,229,0.5)] active:scale-[0.98] mt-4 flex justify-center items-center gap-2">
+                                                <button type="submit" className="w-full bg-[#5B52E5] hover:bg-[#4B7BFF] text-[#FFFFFF] font-semibold py-3.5 px-4 rounded-xl transition-all shadow-[0_0_20px_rgba(91,82,229,0.4)] hover:shadow-[0_0_25px_rgba(75,123,255,0.6)] active:scale-[0.98] mt-4 flex justify-center items-center gap-2">
                                                     <UserPlus className="w-5 h-5" /> Secure Account
                                                 </button>
                                             </motion.form>
