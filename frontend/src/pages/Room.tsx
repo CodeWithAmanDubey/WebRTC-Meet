@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { io, Socket } from 'socket.io-client';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle, Copy, X, Power } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff, MessageSquare, Send, MonitorUp, Users, CheckCircle, XCircle, Copy, X, Power, Home, FileText, Bell, Settings, LogOut, MoreVertical, Sparkles, Smile, UserPlus, Clock } from 'lucide-react';
 import { BACKEND_URL } from '../config';
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -553,381 +553,255 @@ export default function Room() {
     }
 
     return (
-        <div className="h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-indigo-50/30 flex flex-col overflow-hidden">
-            {/* ===== Main Content Area ===== */}
-            <div className="flex flex-1 min-h-0 p-4 gap-4">
-
-                {/* ===== Left: Video Area ===== */}
-                <div className="flex-1 flex flex-col gap-3 min-w-0 animate-slideUp pb-32 justify-center">
-                    {/* Main / Pinned Video */}
-                    <div className="relative w-full max-w-5xl mx-auto aspect-video video-tile bg-gray-900 border border-gray-800 shadow-xl min-h-0 cursor-pointer overflow-hidden rounded-2xl" onClick={() => setPinnedId(pinnedId === 'local' ? 'local' : pinnedId)}>
-                        {pinnedId === 'local' ? (
-                            <>
-                                <video
-                                    ref={localVideoRef}
-                                    autoPlay
-                                    playsInline
-                                    muted
-                                    className={`w-full h-full object-contain ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
-                                />
-                                {isVideoOff && (
-                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
-                                        <div className={`w-32 h-32 rounded-full flex items-center justify-center text-white text-5xl font-bold shadow-lg animate-float ${getAvatarGradient(user?.name || 'U')}`}>
-                                            {user?.name?.charAt(0).toUpperCase()}
-                                        </div>
-                                    </div>
-                                )}
-                                <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
-                                    {user?.name} (You)
-                                    {isMuted && <MicOff className="w-4 h-4 text-red-500" />}
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                {peers.filter(p => p.id === pinnedId).map(peer => (
-                                    <React.Fragment key={peer.id}>
-                                        <RemoteVideo stream={peer.stream} name={peer.name} isMain={true} />
-                                        <div className="absolute bottom-6 left-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-gray-700 font-medium shadow-md flex items-center gap-2 border border-gray-200/50">
-                                            <span className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse"></span>
-                                            {peer.name}
-                                        </div>
-                                    </React.Fragment>
-                                ))}
-                            </>
-                        )}
-                        {peers.length === 0 && (
-                            <div className="absolute top-6 right-6 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-gray-400 font-medium shadow border border-gray-100">
-                                Waiting for others to join...
-                            </div>
-                        )}
+        <div className="h-screen bg-[#F4F6F8] flex overflow-hidden font-sans text-gray-900">
+            {/* Left Sidebar */}
+            <aside className="w-[88px] bg-white flex flex-col items-center py-6 shadow-[2px_0_15px_rgba(0,0,0,0.03)] border-r border-gray-100 flex-shrink-0 z-20 h-full justify-between">
+                <div>
+                    <div className="relative mb-14 cursor-pointer hover:scale-105 transition-transform">
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'A'}`} alt="Avatar" className="w-[46px] h-[46px] rounded-full border border-gray-200 bg-gray-50 object-cover" />
+                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#10b981] rounded-full border-[2.5px] border-white"></div>
                     </div>
 
-                    {/* Thumbnail Strip */}
-                    {peers.length > 0 && (
-                        <div className="flex gap-4 overflow-x-auto pb-2 meeting-scroll animate-slideUp stagger-2 justify-center">
-                            {/* Local thumbnail (when not pinned) */}
-                            {pinnedId !== 'local' && (
-                                <div
-                                    className={`video-tile bg-white border-2 shadow-md shrink-0 w-72 h-52 cursor-pointer transition-all hover:scale-105 ${pinnedId === 'local' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200/80'}`}
-                                    onClick={() => setPinnedId('local')}
-                                >
-                                    <video
-                                        ref={localVideoRef}
-                                        autoPlay
-                                        playsInline
-                                        muted
-                                        className={`w-full h-full object-cover rounded-xl ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`}
-                                    />
-                                    {isVideoOff && (
-                                        <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl">
-                                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold ${getAvatarGradient(user?.name || 'U')}`}>
-                                                {user?.name?.charAt(0).toUpperCase()}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-gray-600 font-medium shadow-sm flex items-center gap-1.5 border border-gray-200/50">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                                        You
-                                    </div>
-                                </div>
-                            )}
-                            {/* Remote thumbnails (skip the pinned one) */}
-                            {peers.filter(p => p.id !== pinnedId).map((peer, i) => (
-                                <div
-                                    key={peer.id}
-                                    className={`video-tile bg-white border-2 shadow-md shrink-0 w-72 h-52 cursor-pointer transition-all hover:scale-105 ${pinnedId === peer.id ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200/80'} stagger-${i + 1}`}
-                                    onClick={() => setPinnedId(peer.id)}
-                                >
-                                    <RemoteVideo stream={peer.stream} name={peer.name} />
-                                    <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs text-gray-600 font-medium shadow-sm flex items-center gap-1.5 border border-gray-200/50">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                                        {peer.name}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* ===== Right: Combined Panel (Participants + Chat + Info) ===== */}
-                {activeTab !== null && (
-                    <aside className="w-80 shrink-0 bg-white/90 backdrop-blur-xl rounded-2xl border border-gray-200/80 shadow-2xl flex flex-col overflow-hidden animate-slideInRight z-10">
-                        {/* Tab Headers */}
-                        <div className="flex border-b border-gray-100 bg-gray-50/50 relative">
-                            {/* Close Button */}
-                            <button
-                                onClick={() => setActiveTab(null)}
-                                className="absolute right-2 top-2 p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors z-10"
-                                title="Close Sidebar"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('info')}
-                                className={`flex-1 py-3 pl-1 pr-6 text-sm font-semibold transition-all relative ${activeTab === 'info' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                Info
-                                {activeTab === 'info' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('participants')}
-                                className={`flex-1 py-3 text-sm font-semibold transition-all relative ${activeTab === 'participants' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                Group
-                                <span className="ml-1 text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">{1 + peers.length}</span>
-                                {activeTab === 'participants' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('chat')}
-                                className={`flex-1 py-3 pr-6 text-sm font-semibold transition-all relative ${activeTab === 'chat' ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                Chat
-                                {messages.length > 0 && activeTab !== 'chat' && (
-                                    <span className="ml-1.5 w-2 h-2 bg-red-500 rounded-full inline-block animate-pulse"></span>
-                                )}
-                                {activeTab === 'chat' && <span className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-indigo-600 rounded-full"></span>}
-                            </button>
-                        </div>
-
-                        {/* Tab Content */}
-                        {activeTab === 'info' ? (
-                            <div className="flex-1 overflow-y-auto p-5 meeting-scroll">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4">{user?.name}'s Meeting</h2>
-                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 mb-4">
-                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Meeting Link / ID</p>
-                                    <div className="flex items-center justify-between gap-2 bg-white border border-gray-200 rounded-lg p-2.5">
-                                        <code className="text-sm font-mono text-indigo-600 truncate">{roomId}</code>
-                                        <button
-                                            onClick={() => { navigator.clipboard.writeText(roomId || ''); alert('Meeting ID copied!'); }}
-                                            className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-md transition-colors"
-                                            title="Copy ID"
-                                        >
-                                            <Copy className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-3 leading-relaxed">
-                                        Share this ID with others so they can join the meeting from the homepage.
-                                    </p>
-                                </div>
-                            </div>
-                        ) : activeTab === 'participants' ? (
-                            <div className="flex-1 overflow-y-auto p-4 space-y-4 meeting-scroll">
-                                {/* Pending Users (Host Only) */}
-                                {isHost && pendingUsers.length > 0 && (
-                                    <div className="animate-fadeIn">
-                                        <h3 className="text-xs text-amber-600 font-bold uppercase mb-2 tracking-wider flex items-center gap-1.5">
-                                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                                            Waiting ({pendingUsers.length})
-                                        </h3>
-                                        <div className="space-y-2">
-                                            {pendingUsers.map(u => (
-                                                <div key={u.socketId} className="flex items-center justify-between bg-amber-50 p-3 rounded-xl border border-amber-200/50 animate-slideInMsg">
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold ${getAvatarGradient(u.name)}`}>
-                                                            {u.name?.charAt(0).toUpperCase()}
-                                                        </div>
-                                                        <span className="text-sm font-medium text-gray-700">{u.name}</span>
-                                                    </div>
-                                                    <div className="flex gap-1.5">
-                                                        <button onClick={() => admitUser(u.socketId)} className="p-1.5 bg-green-100 hover:bg-green-200 text-green-600 rounded-lg transition-colors">
-                                                            <CheckCircle className="w-4 h-4" />
-                                                        </button>
-                                                        <button onClick={() => denyUser(u.socketId)} className="p-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg transition-colors">
-                                                            <XCircle className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Active Participants */}
-                                <div>
-                                    <h3 className="text-xs text-gray-400 font-bold uppercase mb-2 tracking-wider">In Meeting</h3>
-                                    <div className="space-y-1.5">
-                                        {/* Self */}
-                                        <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
-                                            <div className="flex items-center gap-2.5">
-                                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarGradient(user?.name || 'U')}`}>
-                                                    {user?.name?.charAt(0).toUpperCase()}
-                                                </div>
-                                                <div>
-                                                    <span className="text-sm font-semibold text-gray-700">{user?.name}</span>
-                                                    <span className="text-xs text-gray-400 ml-1">(You{isHost ? ', Host' : ''})</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-1.5">
-                                                {isMuted && <MicOff className="w-4 h-4 text-red-400" />}
-                                                {isVideoOff && <VideoOff className="w-4 h-4 text-red-400" />}
-                                            </div>
-                                        </div>
-
-                                        {/* Remote peers */}
-                                        {peers.map(peer => (
-                                            <div key={peer.id} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors group">
-                                                <div className="flex items-center gap-2.5">
-                                                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm ${getAvatarGradient(peer.name)}`}>
-                                                        {peer.name?.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <span className="text-sm font-medium text-gray-700">{peer.name}</span>
-                                                </div>
-                                                {isHost && (
-                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => handleForceMute(peer.id)} title="Force Mute" className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
-                                                            <MicOff className="w-3.5 h-3.5" />
-                                                        </button>
-                                                        <button onClick={() => handleForceVideoOff(peer.id)} title="Stop Video" className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 transition-colors">
-                                                            <VideoOff className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            /* Chat Tab */
-                            <>
-                                <div className="flex-1 overflow-y-auto p-4 space-y-3 meeting-scroll">
-                                    {messages.length === 0 && (
-                                        <div className="h-full flex flex-col items-center justify-center text-gray-300">
-                                            <MessageSquare className="w-10 h-10 mb-2 opacity-30" />
-                                            <p className="text-sm text-gray-400">No messages yet</p>
-                                        </div>
-                                    )}
-                                    {messages.map((msg, idx) => (
-                                        <div key={msg.id || idx} className={`flex flex-col ${msg.isLocal ? 'items-end' : 'items-start'} animate-slideInMsg`}>
-                                            <div className="flex items-center gap-1.5 mb-1">
-                                                {!msg.isLocal && (
-                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold ${getAvatarGradient(msg.senderName)}`}>
-                                                        {msg.senderName?.charAt(0).toUpperCase()}
-                                                    </div>
-                                                )}
-                                                <span className="text-[11px] text-gray-400 font-medium">{msg.isLocal ? 'You' : msg.senderName}</span>
-                                            </div>
-                                            <div className={`px-4 py-2.5 rounded-2xl text-sm max-w-[85%] break-words leading-relaxed ${msg.isLocal
-                                                ? 'bg-indigo-600 text-white rounded-br-sm shadow-md shadow-indigo-200/50'
-                                                : 'bg-gray-100 text-gray-700 rounded-bl-sm'}`}
-                                            >
-                                                {msg.message}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    <div ref={messagesEndRef} />
-                                </div>
-                                <form onSubmit={sendMessage} className="p-3 bg-gray-50/80 border-t border-gray-100 flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={chatInput}
-                                        onChange={(e) => setChatInput(e.target.value)}
-                                        placeholder="Type a message..."
-                                        className="flex-1 bg-white text-gray-700 rounded-full px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-200 border border-gray-200 placeholder-gray-400 min-w-0 transition-all"
-                                    />
-                                    <button type="submit" disabled={!chatInput.trim()} className="p-2.5 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 hover:scale-105 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 shadow-md shadow-indigo-200/50">
-                                        <Send className="w-4 h-4" />
-                                    </button>
-                                </form>
-                            </>
-                        )}
-                    </aside>
-                )}
-            </div>
-
-            {/* ===== Toast Notification ===== */}
-            {toastMessage && (
-                <div
-                    onClick={() => { setActiveTab('chat'); setIsChatOpen(true); setToastMessage(null); }}
-                    className="fixed bottom-28 right-6 bg-white border border-gray-200 rounded-2xl shadow-2xl p-4 z-50 animate-slideUp max-w-xs flex items-start gap-3 cursor-pointer hover:shadow-xl transition-all"
-                >
-                    <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                        <MessageSquare className="w-4 h-4 text-indigo-600" />
-                    </div>
-                    <div className="flex flex-col overflow-hidden flex-1">
-                        <span className="text-sm font-semibold text-gray-800 truncate">{toastMessage.sender}</span>
-                        <span className="text-sm text-gray-500 truncate">{toastMessage.text}</span>
-                    </div>
-                    <button
-                        onClick={(e) => { e.stopPropagation(); setToastMessage(null); }}
-                        className="text-gray-300 hover:text-gray-600 shrink-0"
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
-            )}
-
-            {/* ===== Bottom Control Bar ===== */}
-            <footer className={`fixed bottom-6 inset-x-0 z-50 flex justify-center pointer-events-none transition-all duration-700 ease-in-out ${isControlBarVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-                <div className={`bg-white/30 backdrop-blur-3xl border border-white/50 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.1)] px-8 py-3 flex items-center gap-2.5 transition-all duration-300 hover:bg-white/40 ${isControlBarVisible ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-                    <button
-                        onClick={toggleMute}
-                        className={`control-btn ${isMuted ? 'bg-red-100 text-red-600 shadow-md shadow-red-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
-                        title={isMuted ? 'Unmute' : 'Mute'}
-                    >
-                        {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                    </button>
-                    <button
-                        onClick={toggleVideo}
-                        className={`control-btn ${isVideoOff ? 'bg-red-100 text-red-600 shadow-md shadow-red-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
-                        title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
-                    >
-                        {isVideoOff ? <VideoOff className="w-5 h-5" /> : <VideoIcon className="w-5 h-5" />}
-                    </button>
-                    <button
-                        onClick={toggleScreenShare}
-                        className={`control-btn hidden md:block ${isScreenSharing ? 'bg-indigo-100 text-indigo-600 shadow-md shadow-indigo-100' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'}`}
-                        title="Share Screen"
-                    >
-                        <MonitorUp className="w-5 h-5" />
-                    </button>
-
-                    {/* Sidebar Toggles */}
-                    <button
-                        onClick={() => setActiveTab(activeTab === 'info' ? null : 'info')}
-                        className={`control-btn hidden md:block ${activeTab === 'info' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20 border-transparent hover:bg-indigo-600' : 'bg-white/60 hover:bg-white/90 text-gray-800 border-white/50'}`}
-                        title="Meeting Details"
-                    >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab(activeTab === 'participants' ? null : 'participants')}
-                        className={`control-btn ${activeTab === 'participants' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20 border-transparent hover:bg-indigo-600' : 'bg-white/60 hover:bg-white/90 text-gray-800 border-white/50'}`}
-                        title="Participants"
-                    >
-                        <Users className="w-5 h-5" />
-                    </button>
-                    <button
-                        onClick={() => setActiveTab(activeTab === 'chat' ? null : 'chat')}
-                        className={`control-btn hidden md:block ${activeTab === 'chat' ? 'bg-indigo-500 text-white shadow-md shadow-indigo-500/20 border-transparent hover:bg-indigo-600' : 'bg-white/60 hover:bg-white/90 text-gray-800 border-white/50'}`}
-                        title="Chat"
-                    >
-                        <MessageSquare className="w-5 h-5" />
-                    </button>
-
-                    <div className="w-px h-8 bg-gray-200 mx-1"></div>
-
-                    <button
-                        onClick={handleLeave}
-                        className="control-btn bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-200/50 flex items-center gap-2 px-5"
-                        title="Leave Meeting"
-                    >
-                        <PhoneOff className="w-5 h-5" />
-                        <span className="text-sm font-semibold hidden sm:inline">End</span>
-                    </button>
-                    {isHost && (
-                        <button
-                            onClick={handleEndMeeting}
-                            className="control-btn bg-red-700 hover:bg-red-800 text-white shadow-lg shadow-red-300/50 px-4 flex items-center gap-2"
-                            title="End Meeting for All"
-                        >
-                            <Power className="w-4 h-4" />
-                            <span className="text-xs font-semibold hidden sm:inline">End All</span>
+                    <div className="flex flex-col gap-[34px] items-center">
+                        <button className="text-gray-400 hover:text-black transition-colors"><Home strokeWidth={2} size={24} /></button>
+                        <button className="bg-[#3B5BFF] text-white p-3.5 rounded-full shadow-[0_8px_20px_rgba(59,91,255,0.35)] hover:scale-105 transition-all"><VideoIcon size={24} strokeWidth={2.5} /></button>
+                        <button className="text-gray-400 hover:text-black transition-colors"><FileText strokeWidth={2} size={24} /></button>
+                        <button className="text-gray-400 hover:text-black transition-colors"><MessageSquare strokeWidth={2} size={24} /></button>
+                        <button className="text-gray-400 hover:text-black transition-colors relative">
+                            <Bell strokeWidth={2} size={24} />
                         </button>
-                    )}
+                    </div>
                 </div>
-            </footer>
+
+                <div className="flex flex-col gap-8 items-center">
+                    <button className="text-gray-400 hover:text-black transition-colors"><Settings strokeWidth={2} size={24} /></button>
+                    <button onClick={handleLeave} className="text-gray-400 hover:text-red-500 transition-colors"><LogOut strokeWidth={2} size={24} /></button>
+                </div>
+            </aside>
+
+            {/* Main Content Area */}
+            <main className="flex-1 flex flex-col min-w-0 px-8 py-8 z-10 max-h-screen overflow-hidden">
+                {/* Header */}
+                <header className="flex justify-between items-center mb-6 pl-2 shrink-0">
+                    <div>
+                        <div className="text-[13px] text-gray-500 font-semibold mb-1 tracking-wide">09:50 AM, 16 June, 2025</div>
+                        <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">Rebranding</h1>
+                    </div>
+                    <button className="w-10 h-10 rounded-full border-2 border-gray-200 text-gray-700 flex flex-col items-center justify-center hover:bg-gray-100 transition-colors shrink-0">
+                        <MoreVertical size={20} strokeWidth={2.5} />
+                    </button>
+                </header>
+
+                {/* Video Grid */}
+                <div className="flex-1 flex flex-col gap-6 min-h-0 pl-2 shrink-[2]">
+                    {/* Top Row (Thumbnails) */}
+                    <div className="h-[210px] flex gap-5 shrink-0">
+                        {peers.slice(0, 3).map((peer, i) => (
+                            <div key={peer.id} className="flex-1 rounded-[2rem] overflow-hidden relative group bg-gray-900 shadow-sm border border-gray-200">
+                                <RemoteVideo stream={peer.stream} name={peer.name} />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none"></div>
+                                <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center bg-white/20 backdrop-blur-xl rounded-[1rem] pl-2.5 py-[7px] pr-[9px] border border-white/20 shadow-xl">
+                                    <div className="flex items-center gap-2.5 text-white font-medium text-sm">
+                                        <div className="w-[26px] h-[26px] rounded-full bg-white/20 flex items-center justify-center border border-white/30 text-[11px] backdrop-blur-md font-bold">
+                                            {peer.name.charAt(0)}
+                                        </div>
+                                        <span className="tracking-wide text-[13px] font-semibold">{peer.name.split(' ')[0]}</span>
+                                    </div>
+                                    <div className="w-[26px] h-[26px] flex items-center justify-center rounded-full">
+                                        <MicOff size={14} className="text-white/80 shrink-0" strokeWidth={2.5} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {/* Fill empty spots if peers < 3 */}
+                        {[...Array(Math.max(0, 3 - peers.length))].map((_, i) => (
+                            <div key={`empty-${i}`} className="flex-1 rounded-[2rem] overflow-hidden relative bg-white border border-gray-200 shadow-sm flex items-center justify-center">
+                                <span className="text-gray-400 font-bold text-sm">Waiting...</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Bottom Main Video */}
+                    <div className="flex-1 rounded-[2rem] overflow-hidden relative bg-gray-900 shadow-sm border border-gray-200 min-h-0">
+                        <video ref={localVideoRef} autoPlay playsInline muted className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`} />
+                        {isVideoOff && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                                <div className="w-28 h-28 rounded-full bg-[#3B5BFF] flex items-center justify-center text-white text-[40px] font-bold shadow-xl border-4 border-white">
+                                    {user?.name?.charAt(0).toUpperCase()}
+                                </div>
+                            </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none"></div>
+                        <div className="absolute bottom-6 left-6 bg-white/20 backdrop-blur-xl rounded-[1rem] pl-3 py-2 pr-4 flex items-center gap-3 border border-white/20 text-white shadow-xl">
+                            <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center border border-white/30 text-xs backdrop-blur-md font-bold">
+                                {user?.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="tracking-wide text-sm font-semibold">{user?.name?.split(' ')[0] || 'Me'}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom Control Bar */}
+                <div className="mt-8 flex items-center justify-between shrink-0 pl-2 pr-1">
+                    <div className="flex items-center gap-2.5 bg-white px-[22px] py-3.5 rounded-[1.25rem] shadow-[0_2px_10px_rgba(0,0,0,0.02)] text-gray-800 font-semibold text-sm border border-gray-100 tracking-wide">
+                        <Clock size={18} className="text-gray-900" strokeWidth={2.5} />
+                        58:12:19
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <button onClick={toggleMute} className={`w-14 h-14 flex items-center justify-center rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.04)] transition-transform hover:scale-105 border border-gray-100 ${isMuted ? 'bg-gray-100 text-[#ff4b4b]' : 'bg-white text-gray-800'}`}>
+                            {isMuted ? <MicOff size={22} strokeWidth={2} /> : <Mic size={22} strokeWidth={2} />}
+                        </button>
+                        <button onClick={toggleVideo} className={`w-14 h-14 flex items-center justify-center rounded-full transition-transform hover:scale-105 ${isVideoOff ? 'bg-[#ff4b4b] text-white shadow-[0_8px_20px_rgba(255,75,75,0.3)]' : 'bg-[#3B5BFF] text-white shadow-[0_8px_20px_rgba(59,91,255,0.3)]'}`}>
+                            {isVideoOff ? <VideoOff size={22} strokeWidth={2} /> : <VideoIcon size={22} strokeWidth={2.5} />}
+                        </button>
+                        <button className="w-14 h-14 flex items-center justify-center rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.04)] transition-transform hover:scale-105 border border-gray-100 bg-white text-gray-800">
+                            <Smile size={22} strokeWidth={2} />
+                        </button>
+                        <button onClick={handleLeave} className="w-14 h-14 flex items-center justify-center rounded-full shadow-[0_8px_20px_rgba(255,75,75,0.3)] transition-transform hover:scale-105 bg-[#ff4b4b] text-white border-2 border-red-400/20">
+                            <PhoneOff size={22} strokeWidth={2} />
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-[1.25rem] shadow-[0_2px_10px_rgba(0,0,0,0.02)] text-gray-800 font-semibold border text-sm border-gray-100 tracking-wide cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => { navigator.clipboard.writeText(roomId || ''); alert('Copied ID!'); }}>
+                        <Copy size={18} className="text-gray-900" strokeWidth={2.5} />
+                        conf-123
+                    </div>
+                </div>
+            </main>
+
+            {/* Right Sidebar */}
+            <aside className="w-[380px] bg-transparent pt-8 pb-8 pr-8 flex flex-col gap-6 z-10 h-full overflow-y-auto shrink-0 hide-scrollbar">
+                {/* Settings Card */}
+                <div className="bg-white rounded-[2rem] p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/50">
+                    <h3 className="font-bold text-gray-900 mb-5 text-[17px] tracking-tight">Settings</h3>
+                    <div className="space-y-4">
+                        {['Noise suppression', 'Video stabilization', 'Automatic subtitles'].map((setting, i) => (
+                            <div key={i} className="flex items-center justify-between group">
+                                <div className="flex items-center gap-3.5 text-[14px] font-semibold text-gray-700">
+                                    <Sparkles size={18} className="text-[#a855f7]" strokeWidth={2} />
+                                    {setting}
+                                </div>
+                                <div className="w-[42px] h-[24px] bg-[#EEF2FF] rounded-full p-[3px] cursor-pointer flex justify-end border border-blue-100">
+                                    <div className="w-[16px] h-[16px] bg-[#3B5BFF] rounded-full shadow-sm"></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* AI Summary Card */}
+                <div className="bg-white rounded-[2rem] p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/50">
+                    <h3 className="font-bold text-gray-900 mb-[14px] text-[17px] tracking-tight">AI Summary</h3>
+                    <p className="text-[14px] font-bold text-gray-900 mb-2">Key points:</p>
+                    <ul className="text-[13px] space-y-[9px] mb-7 ml-[18px] list-disc text-[#888] font-medium tracking-wide">
+                        <li className="text-gray-900 leading-snug">Discussed changing the communication tone</li>
+                        <li className="text-gray-900 leading-snug">Visual inspiration examples: Apple, Figma</li>
+                        <li className="leading-snug">Design phase budget approved</li>
+                    </ul>
+                    <button className="w-full bg-[#3B5BFF] hover:bg-[#2e47db] transition-colors text-white font-bold py-[15px] rounded-full shadow-[0_8px_20px_rgba(59,91,255,0.25)] text-sm tracking-wide">
+                        Send by email
+                    </button>
+                </div>
+
+                {/* Participants Card */}
+                <div className="bg-white rounded-[2rem] p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/50 flex-1 flex flex-col min-h-[300px]">
+                    <div className="flex bg-white rounded-full p-1.5 mb-6 border-2 border-gray-100/80 shadow-inner max-w-full">
+                        <button className="flex-1 bg-black text-white text-[13px] font-bold py-[11px] rounded-full shadow-md text-center tracking-wide">
+                            Participants (7)
+                        </button>
+                        <button className="flex-1 bg-transparent text-gray-500 hover:text-gray-900 transition-colors text-[13px] font-bold py-[11px] rounded-full text-center tracking-wide">
+                            Chat
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto space-y-[18px] mb-6 pr-1 custom-scrollbar">
+                        {/* Tony Ware example */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-[14px]">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Tony" className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
+                                <div>
+                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Tony Ware</div>
+                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@tonyware</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-[14px] text-gray-400">
+                                <Mic size={20} strokeWidth={2.5} className="text-gray-600" />
+                                <VideoIcon size={20} strokeWidth={2.5} className="text-gray-600" />
+                            </div>
+                        </div>
+
+                        {/* Cara Carr example */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-[14px]">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Cara" className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
+                                <div>
+                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Cara Carr</div>
+                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@caracarrrrr</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-[14px] text-gray-400">
+                                <MicOff size={20} strokeWidth={2.5} className="text-gray-700" />
+                                <VideoIcon size={20} strokeWidth={2.5} className="text-gray-700" />
+                            </div>
+                        </div>
+
+                        {/* Anisa Whitehead example */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-[14px]">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Anisa" className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
+                                <div>
+                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Anisa Whitehead</div>
+                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@anisawhite</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-[14px] text-gray-400">
+                                <MicOff size={20} strokeWidth={2.5} className="text-gray-700" />
+                                <VideoIcon size={20} strokeWidth={2.5} className="text-gray-700" />
+                            </div>
+                        </div>
+
+                        {/* Martina Doherty example */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-[14px]">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Martina" className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
+                                <div>
+                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Martina Doherty</div>
+                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@martinado</div>
+                                </div>
+                            </div>
+                            <div className="flex gap-[14px] text-gray-400">
+                                <MicOff size={20} strokeWidth={2.5} className="text-gray-700" />
+                                <VideoIcon size={20} strokeWidth={2.5} className="text-gray-700" />
+                            </div>
+                        </div>
+
+                        {/* Fake self (Floyd as faded) */}
+                        <div className="flex items-center justify-between opacity-30 mt-2 border-t pt-4">
+                            <div className="flex items-center gap-[14px]">
+                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
+                                <div>
+                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Floyd Bolton</div>
+                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@floydb</div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <button className="w-full bg-[#3B5BFF] hover:bg-[#2e47db] transition-colors text-white font-bold py-[15px] rounded-full flex justify-center items-center gap-2.5 shadow-[0_8px_20px_rgba(59,91,255,0.25)] mt-auto shrink-0 text-sm tracking-wide border-t border-transparent">
+                        <UserPlus size={18} strokeWidth={2.5} />
+                        Invite people
+                    </button>
+                </div>
+            </aside>
+            <style>{`
+            .hide-scrollbar::-webkit-scrollbar { display: none; }
+            .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+            .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+            .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+            .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 4px; }
+            `}</style>
         </div>
     );
 }
