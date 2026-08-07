@@ -1,10 +1,6 @@
-import { Resend } from 'resend';
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export const sendOTP = async (to: string, code: string, maxRetries = 3): Promise<boolean> => {
-    // If no Resend API key is configured, instantly log the code to console for local testing
-    if (!process.env.RESEND_API_KEY) {
+    // If no BREVO API key is configured, log the code to console for local testing
+    if (!process.env.BREVO_API_KEY) {
         console.log(`\n=========================================`);
         console.log(`🎯 [DEV MODE] OTP for ${to} is: ${code}`);
         console.log(`=========================================\n`);
@@ -14,25 +10,33 @@ export const sendOTP = async (to: string, code: string, maxRetries = 3): Promise
     let attempt = 1;
     while (attempt <= maxRetries) {
         try {
-            const { data, error } = await resend.emails.send({
-                from: 'Zoom Clone <onboarding@resend.dev>',
-                to: [to],
-                subject: 'Your Zoom Clone Verification Code',
-                html: `<p>Your verification code is: <strong>${code}</strong></p><p>It will expire in 10 minutes.</p>`,
+            const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': process.env.BREVO_API_KEY,
+                    'content-type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sender: { name: 'Zoom Clone', email: process.env.SMTP_USER },
+                    to: [{ email: to }],
+                    subject: 'Your Zoom Clone Verification Code',
+                    htmlContent: `<p>Your verification code is: <strong>${code}</strong></p><p>It will expire in 10 minutes.</p>`
+                })
             });
 
-            if (error) {
-                throw new Error(error.message);
+            if (!response.ok) {
+                const errorData = await response.text();
+                throw new Error(`Brevo API error: ${errorData}`);
             }
 
-            console.log(`✅ Resend Email dispatched successfully to ${to}. ID: ${data?.id}`);
+            console.log(`✅ Brevo Email dispatched successfully to ${to}`);
             return true;
         } catch (error) {
-            console.error(`❌ Attempt ${attempt} to send OTP via Resend failed:`, error);
+            console.error(`❌ Attempt ${attempt} to send OTP via Brevo failed:`, error);
             if (attempt === maxRetries) {
                 return false;
             }
-            // Rapid backoff for API
             await new Promise(resolve => setTimeout(resolve, 800));
             attempt++;
         }
