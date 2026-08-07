@@ -183,30 +183,30 @@ export default function Home() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center text-white p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center text-gray-900 p-4 relative overflow-hidden selection:bg-neutral-900 selection:text-white">
             <div className="absolute top-4 right-4 flex items-center gap-4 z-20">
-                <span className="text-gray-400">Hello, <strong className="text-white">{user?.name}</strong></span>
-                <button onClick={logout} className="p-2 bg-gray-800 hover:bg-gray-700 rounded-full transition-colors" title="Log out">
-                    <LogOut className="w-5 h-5 text-gray-400" />
+                <span className="text-gray-600">Hello, <strong className="text-neutral-900">{user?.name}</strong></span>
+                <button onClick={logout} className="p-2 bg-gray-200 hover:bg-gray-300 rounded-full transition-colors" title="Log out">
+                    <LogOut className="w-5 h-5 text-gray-600" />
                 </button>
             </div>
 
-            <div className="absolute top-0 right-0 p-32 bg-indigo-500 rounded-full blur-[100px] opacity-20 transform translate-x-1/2 -translate-y-1/2"></div>
-            <div className="absolute bottom-0 left-0 p-32 bg-purple-500 rounded-full blur-[100px] opacity-10 transform -translate-x-1/2 translate-y-1/2"></div>
+            <div className="absolute top-0 right-0 p-32 bg-gray-200 rounded-full blur-[100px] opacity-40 transform translate-x-1/2 -translate-y-1/2"></div>
+            <div className="absolute bottom-0 left-0 p-32 bg-gray-300 rounded-full blur-[100px] opacity-30 transform -translate-x-1/2 translate-y-1/2"></div>
 
             <div className="w-full max-w-5xl z-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-start relative mt-16 md:mt-0">
 
                 {/* Main Controls Panel */}
-                <div className="md:col-span-5 bg-gray-800/80 p-8 rounded-2xl shadow-2xl border border-gray-700/50 backdrop-blur-md">
-                    <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 mb-2 flex items-center gap-3">
-                        <Video className="text-indigo-400 w-8 h-8" /> WebRTC Meet
+                <div className="md:col-span-5 bg-white p-8 rounded-2xl shadow-xl border border-gray-200">
+                    <h1 className="text-3xl font-extrabold text-neutral-900 mb-2 flex items-center gap-3">
+                        <Video className="text-neutral-900 w-8 h-8" /> WebRTC Meet
                     </h1>
-                    <p className="text-gray-400 mb-8 font-medium">Connect anywhere, anytime.</p>
+                    <p className="text-gray-500 mb-8 font-medium">Connect anywhere, anytime.</p>
 
                     <div className="space-y-4">
                         <button
                             onClick={handleCreateRoom}
-                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 group shadow-lg shadow-indigo-600/30 hover:scale-[1.02]"
+                            className="w-full bg-neutral-900 hover:bg-black text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 group shadow-lg shadow-black/10 hover:scale-[1.02]"
                         >
                             <Video className="w-5 h-5" />
                             Start an instant meeting
@@ -214,16 +214,16 @@ export default function Home() {
 
                         <button
                             onClick={() => setShowScheduleModal(true)}
-                            className="w-full bg-gray-700 hover:bg-gray-600 border border-gray-600 text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 group shadow-lg hover:scale-[1.02]"
+                            className="w-full bg-gray-50 hover:bg-gray-100 border border-gray-200 text-neutral-900 font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 group shadow-sm hover:scale-[1.02]"
                         >
                             <Calendar className="w-5 h-5" />
                             Schedule for later
                         </button>
 
                         <div className="relative flex items-center py-6">
-                            <div className="flex-grow border-t border-gray-700"></div>
-                            <span className="flex-shrink-0 mx-4 text-gray-500 text-sm font-medium">or join existing</span>
-                            <div className="flex-grow border-t border-gray-700"></div>
+                            <div className="flex-grow border-t border-gray-200"></div>
+                            <span className="flex-shrink-0 mx-4 text-gray-400 text-sm font-medium">or join existing</span>
+                            <div className="flex-grow border-t border-gray-200"></div>
                         </div>
 
                         <form onSubmit={handleJoinRoom} className="flex gap-2">
@@ -232,12 +232,12 @@ export default function Home() {
                                 value={roomId}
                                 onChange={(e) => setRoomId(e.target.value)}
                                 placeholder="Enter 6-digit code"
-                                className="flex-grow bg-gray-900 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-100 placeholder-gray-500"
+                                className="flex-grow bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent text-gray-900 placeholder-gray-400"
                             />
                             <button
                                 type="submit"
                                 disabled={!roomId.trim()}
-                                className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold py-3 px-6 rounded-xl transition-colors text-white"
+                                className="bg-neutral-900 hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed font-semibold py-3 px-6 rounded-xl transition-colors text-white"
                             >
                                 Join
                             </button>
@@ -246,25 +246,25 @@ export default function Home() {
                 </div>
 
                 {/* Upcoming Meetings Panel */}
-                <div className="md:col-span-7 bg-gray-800/50 p-6 sm:p-8 rounded-2xl shadow-xl border border-gray-700/30 backdrop-blur-sm flex flex-col min-h-[450px]">
-                    <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-gray-200">
-                        <Clock className="w-6 h-6 text-purple-400" />
+                <div className="md:col-span-7 bg-white/70 p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200 flex flex-col min-h-[450px]">
+                    <h2 className="text-xl font-bold flex items-center gap-2 mb-6 text-neutral-900">
+                        <Clock className="w-6 h-6 text-neutral-900" />
                         Your Meetings
                     </h2>
 
-                    <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                    <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
                         {myMeetings.length === 0 ? (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                            <div className="h-full flex flex-col items-center justify-center text-gray-400">
                                 <Calendar className="w-16 h-16 mb-4 opacity-20" />
-                                <p>You have no scheduled meetings.</p>
+                                <p className="font-medium">You have no scheduled meetings.</p>
                             </div>
                         ) : (
                             myMeetings.map((meeting) => (
-                                <div key={meeting.id} className="bg-gray-900/60 border border-gray-700/50 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-gray-800/80 transition-colors">
+                                <div key={meeting.id} className="bg-white border border-gray-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 group hover:bg-gray-50 transition-colors shadow-sm">
                                     <div>
-                                        <h3 className="font-semibold text-white truncate max-w-[200px]">{meeting.name || 'Untitled Room'}</h3>
+                                        <h3 className="font-bold text-gray-900 truncate max-w-[200px]">{meeting.name || 'Untitled Room'}</h3>
                                         {meeting.scheduledFor ? (
-                                            <p className="text-sm text-indigo-400 font-medium flex items-center gap-2 mt-0.5">
+                                            <p className="text-sm text-neutral-600 font-medium flex items-center gap-2 mt-0.5">
                                                 {new Date(meeting.scheduledFor).toLocaleString(undefined, {
                                                     weekday: 'short',
                                                     month: 'short',
@@ -272,33 +272,33 @@ export default function Home() {
                                                     hour: '2-digit',
                                                     minute: '2-digit'
                                                 })}
-                                                <span className="text-xs bg-indigo-500/20 px-2 py-0.5 rounded-full text-indigo-300">
+                                                <span className="text-xs bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full text-neutral-700">
                                                     {formatRelativeTime(meeting.scheduledFor)}
                                                 </span>
                                             </p>
                                         ) : (
-                                            <p className="text-sm text-green-400 font-medium">Instant Meeting</p>
+                                            <p className="text-sm text-emerald-600 font-medium">Instant Meeting</p>
                                         )}
-                                        <p className="text-xs text-gray-500 mt-1 font-mono">ID: {meeting.id}</p>
+                                        <p className="text-xs text-gray-400 mt-1 font-mono">ID: {meeting.id}</p>
                                     </div>
                                     <div className="flex gap-2 shrink-0">
                                         <button
                                             onClick={() => copyToClipboard(meeting.id)}
-                                            className="p-2.5 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-300 rounded-lg transition-colors group-hover:border-gray-600"
+                                            className="p-2.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 rounded-lg transition-colors group-hover:border-gray-300"
                                             title="Copy Code"
                                         >
                                             <Copy className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => handleDeleteRoom(meeting.id)}
-                                            className="p-2.5 bg-red-900/40 hover:bg-red-600 border border-red-800/50 text-red-300 hover:text-white rounded-lg transition-colors"
+                                            className="p-2.5 bg-red-50 hover:bg-red-100 border border-red-100/50 text-red-500 hover:text-red-700 rounded-lg transition-colors"
                                             title="Delete Meeting"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                         <button
                                             onClick={() => navigate(`/room/${meeting.id}`)}
-                                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                                            className="px-5 py-2.5 bg-neutral-900 hover:bg-black text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
                                         >
                                             Start
                                         </button>
@@ -312,47 +312,47 @@ export default function Home() {
 
             {/* Schedule Modal */}
             {showScheduleModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-gray-900 border border-gray-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+                <div className="fixed inset-0 bg-neutral-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white border border-gray-200 w-full max-w-md rounded-2xl p-6 shadow-2xl">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold flex items-center gap-2">
-                                <Calendar className="w-6 h-6 text-indigo-500" />
+                            <h2 className="text-2xl font-bold flex items-center gap-2 text-neutral-900">
+                                <Calendar className="w-6 h-6 text-neutral-900" />
                                 Schedule Meeting
                             </h2>
-                            <button onClick={() => setShowScheduleModal(false)} className="text-gray-400 hover:text-white p-1">
+                            <button onClick={() => setShowScheduleModal(false)} className="text-gray-400 hover:text-gray-900 p-1 transition-colors">
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
 
                         <form onSubmit={handleScheduleSubmit} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1">Meeting Topic</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Meeting Topic</label>
                                 <input
                                     type="text"
                                     placeholder={`${user?.name}'s Scheduled Meeting`}
                                     value={scheduleName}
                                     onChange={(e) => setScheduleName(e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 text-white placeholder-gray-500"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-neutral-900 text-gray-900 placeholder-gray-400"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1">Date</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Date</label>
                                 <input
                                     type="date"
                                     required
                                     value={scheduleDate}
                                     onChange={(e) => setScheduleDate(e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 text-white"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-neutral-900 text-gray-900"
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1">Time</label>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Time</label>
                                 <input
                                     type="time"
                                     required
                                     value={scheduleTime}
                                     onChange={(e) => setScheduleTime(e.target.value)}
-                                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 text-white"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-neutral-900 text-gray-900"
                                 />
                             </div>
 
@@ -360,14 +360,14 @@ export default function Home() {
                                 <button
                                     type="button"
                                     onClick={() => setShowScheduleModal(false)}
-                                    className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold rounded-lg transition-colors border border-gray-700"
+                                    className="flex-1 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-bold rounded-lg transition-colors border border-gray-200"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={!scheduleDate || !scheduleTime}
-                                    className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors"
+                                    className="flex-1 py-2.5 bg-neutral-900 hover:bg-black disabled:opacity-50 text-white font-bold rounded-lg transition-colors shadow-lg"
                                 >
                                     Schedule
                                 </button>
