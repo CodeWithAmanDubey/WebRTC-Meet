@@ -563,12 +563,12 @@ export default function Room() {
                     </div>
 
                     <div className="flex flex-col gap-[34px] items-center">
-                        <button className="text-gray-400 hover:text-black transition-colors"><Home strokeWidth={2} size={24} /></button>
+                        <button onClick={() => window.open('/', '_blank')} className="text-gray-400 hover:text-black transition-colors" title="Go to Home"><Home strokeWidth={2} size={24} /></button>
                         <button className="bg-[#3B5BFF] text-white p-3.5 rounded-full shadow-[0_8px_20px_rgba(59,91,255,0.35)] hover:scale-105 transition-all"><VideoIcon size={24} strokeWidth={2.5} /></button>
-                        <button className="text-gray-400 hover:text-black transition-colors"><FileText strokeWidth={2} size={24} /></button>
-                        <button className="text-gray-400 hover:text-black transition-colors"><MessageSquare strokeWidth={2} size={24} /></button>
-                        <button className="text-gray-400 hover:text-black transition-colors relative">
+                        <button onClick={() => setActiveTab('chat')} className="text-gray-400 hover:text-black transition-colors" title="Open Chat"><MessageSquare strokeWidth={2} size={24} /></button>
+                        <button onClick={() => setActiveTab('chat')} className={`transition-colors relative ${messages.length > 0 && activeTab !== 'chat' ? 'text-[#3B5BFF] animate-pulse' : 'text-gray-400 hover:text-black'}`} title="Notifications">
                             <Bell strokeWidth={2} size={24} />
+                            {(messages.length > 0 && activeTab !== 'chat') && <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>}
                         </button>
                     </div>
                 </div>
@@ -585,7 +585,7 @@ export default function Room() {
                 <header className="flex justify-between items-center mb-6 pl-2 shrink-0">
                     <div>
                         <div className="text-[13px] text-gray-500 font-semibold mb-1 tracking-wide">09:50 AM, 16 June, 2025</div>
-                        <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">Rebranding</h1>
+                        <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">WebRTC</h1>
                     </div>
                     <button className="w-10 h-10 rounded-full border-2 border-gray-200 text-gray-700 flex flex-col items-center justify-center hover:bg-gray-100 transition-colors shrink-0">
                         <MoreVertical size={20} strokeWidth={2.5} />
@@ -707,92 +707,99 @@ export default function Room() {
                 {/* Participants Card */}
                 <div className="bg-white rounded-[2rem] p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/50 flex-1 flex flex-col min-h-[300px]">
                     <div className="flex bg-white rounded-full p-1.5 mb-6 border-2 border-gray-100/80 shadow-inner max-w-full">
-                        <button className="flex-1 bg-black text-white text-[13px] font-bold py-[11px] rounded-full shadow-md text-center tracking-wide">
-                            Participants (7)
+                        <button onClick={() => setActiveTab('participants')} className={`flex-1 ${activeTab !== 'chat' ? 'bg-black text-white shadow-md' : 'bg-transparent text-gray-500 hover:text-gray-900'} text-[13px] font-bold py-[11px] rounded-full text-center tracking-wide transition-colors`}>
+                            Participants ({1 + peers.length})
                         </button>
-                        <button className="flex-1 bg-transparent text-gray-500 hover:text-gray-900 transition-colors text-[13px] font-bold py-[11px] rounded-full text-center tracking-wide">
+                        <button onClick={() => setActiveTab('chat')} className={`flex-1 ${activeTab === 'chat' ? 'bg-black text-white shadow-md' : 'bg-transparent text-gray-500 hover:text-gray-900'} text-[13px] font-bold py-[11px] rounded-full text-center tracking-wide transition-colors relative`}>
                             Chat
+                            {(messages.length > 0 && activeTab !== 'chat') && <span className="absolute top-2 right-6 w-2 h-2 bg-[#ff4b4b] rounded-full"></span>}
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto space-y-[18px] mb-6 pr-1 custom-scrollbar">
-                        {/* Tony Ware example */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-[14px]">
-                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Tony" className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
-                                <div>
-                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Tony Ware</div>
-                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@tonyware</div>
+                    {activeTab !== 'chat' ? (
+                        <>
+                            <div className="flex-1 overflow-y-auto space-y-[18px] mb-6 pr-1 custom-scrollbar">
+                                {/* Self */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-[14px]">
+                                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'A'}`} className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
+                                        <div>
+                                            <div className="text-[14.5px] font-bold text-gray-900 leading-tight">{user?.name} (You)</div>
+                                            <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@{user?.name?.toLowerCase().replace(/\s+/g, '')}</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-[14px] text-gray-400">
+                                        {isMuted ? <MicOff size={20} strokeWidth={2.5} className="text-[#ff4b4b]" /> : <Mic size={20} strokeWidth={2.5} />}
+                                        {isVideoOff ? <VideoOff size={20} strokeWidth={2.5} className="text-[#ff4b4b]" /> : <VideoIcon size={20} strokeWidth={2.5} />}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex gap-[14px] text-gray-400">
-                                <Mic size={20} strokeWidth={2.5} className="text-gray-600" />
-                                <VideoIcon size={20} strokeWidth={2.5} className="text-gray-600" />
-                            </div>
-                        </div>
 
-                        {/* Cara Carr example */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-[14px]">
-                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Cara" className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
-                                <div>
-                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Cara Carr</div>
-                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@caracarrrrr</div>
-                                </div>
+                                {/* Remote Peers */}
+                                {peers.map(peer => (
+                                    <div key={peer.id} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-[14px]">
+                                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${peer.name}`} className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
+                                            <div>
+                                                <div className="text-[14.5px] font-bold text-gray-900 leading-tight">{peer.name}</div>
+                                                <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@{peer.name.toLowerCase().replace(/\s+/g, '')}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-[14px] text-gray-400">
+                                            <Mic size={20} strokeWidth={2.5} />
+                                            <VideoIcon size={20} strokeWidth={2.5} />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            <div className="flex gap-[14px] text-gray-400">
-                                <MicOff size={20} strokeWidth={2.5} className="text-gray-700" />
-                                <VideoIcon size={20} strokeWidth={2.5} className="text-gray-700" />
-                            </div>
-                        </div>
 
-                        {/* Anisa Whitehead example */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-[14px]">
-                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Anisa" className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
-                                <div>
-                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Anisa Whitehead</div>
-                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@anisawhite</div>
-                                </div>
+                            <button className="w-full bg-[#3B5BFF] hover:bg-[#2e47db] transition-colors text-white font-bold py-[15px] rounded-full flex justify-center items-center gap-2.5 shadow-[0_8px_20px_rgba(59,91,255,0.25)] mt-auto shrink-0 text-sm tracking-wide border-t border-transparent">
+                                <UserPlus size={18} strokeWidth={2.5} />
+                                Invite people
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="flex-1 overflow-y-auto space-y-4 mb-5 pr-1 custom-scrollbar">
+                                {messages.length === 0 && (
+                                    <div className="h-full flex flex-col items-center justify-center text-gray-300">
+                                        <MessageSquare className="w-10 h-10 mb-3 opacity-20" />
+                                        <p className="text-sm font-semibold">No messages yet</p>
+                                    </div>
+                                )}
+                                {messages.map((msg, idx) => (
+                                    <div key={msg.id || idx} className={`flex flex-col ${msg.isLocal ? 'items-end' : 'items-start'} animate-slideInMsg`}>
+                                        <div className="flex items-center gap-1.5 mb-1.5">
+                                            {!msg.isLocal && (
+                                                <div className="w-5 h-5 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#3B5BFF] text-[9px] font-bold border border-blue-100">
+                                                    {msg.senderName?.charAt(0).toUpperCase()}
+                                                </div>
+                                            )}
+                                            <span className="text-[11px] text-gray-400 font-semibold tracking-wide">{msg.isLocal ? 'You' : msg.senderName}</span>
+                                        </div>
+                                        <div className={`px-[18px] py-[11px] rounded-[1.25rem] text-[13px] font-medium max-w-[90%] break-words leading-relaxed ${msg.isLocal
+                                            ? 'bg-[#3B5BFF] text-white rounded-br-[0.25rem] shadow-[0_4px_10px_rgba(59,91,255,0.25)]'
+                                            : 'bg-gray-100 text-gray-800 rounded-bl-[0.25rem]'}`}
+                                        >
+                                            {msg.message}
+                                        </div>
+                                    </div>
+                                ))}
+                                <div ref={messagesEndRef} />
                             </div>
-                            <div className="flex gap-[14px] text-gray-400">
-                                <MicOff size={20} strokeWidth={2.5} className="text-gray-700" />
-                                <VideoIcon size={20} strokeWidth={2.5} className="text-gray-700" />
-                            </div>
-                        </div>
-
-                        {/* Martina Doherty example */}
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-[14px]">
-                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Martina" className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
-                                <div>
-                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Martina Doherty</div>
-                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@martinado</div>
-                                </div>
-                            </div>
-                            <div className="flex gap-[14px] text-gray-400">
-                                <MicOff size={20} strokeWidth={2.5} className="text-gray-700" />
-                                <VideoIcon size={20} strokeWidth={2.5} className="text-gray-700" />
-                            </div>
-                        </div>
-
-                        {/* Fake self (Floyd as faded) */}
-                        <div className="flex items-center justify-between opacity-30 mt-2 border-t pt-4">
-                            <div className="flex items-center gap-[14px]">
-                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name}`} className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
-                                <div>
-                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">Floyd Bolton</div>
-                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@floydb</div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <button className="w-full bg-[#3B5BFF] hover:bg-[#2e47db] transition-colors text-white font-bold py-[15px] rounded-full flex justify-center items-center gap-2.5 shadow-[0_8px_20px_rgba(59,91,255,0.25)] mt-auto shrink-0 text-sm tracking-wide border-t border-transparent">
-                        <UserPlus size={18} strokeWidth={2.5} />
-                        Invite people
-                    </button>
+                            <form onSubmit={sendMessage} className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={chatInput}
+                                    onChange={(e) => setChatInput(e.target.value)}
+                                    placeholder="Type a message..."
+                                    className="flex-1 bg-gray-50 text-gray-800 rounded-full px-5 py-3 text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/30 border border-gray-200 placeholder-gray-400 transition-all shadow-inner"
+                                />
+                                <button type="submit" disabled={!chatInput.trim()} className="w-11 h-11 flex items-center justify-center bg-[#3B5BFF] text-white rounded-full hover:bg-[#2e47db] hover:shadow-[0_4px_15px_rgba(59,91,255,0.3)] disabled:opacity-50 transition-all shrink-0">
+                                    <Send className="w-[18px] h-[18px] ml-0.5" />
+                                </button>
+                            </form>
+                        </>
+                    )}
                 </div>
             </aside>
             <style>{`
