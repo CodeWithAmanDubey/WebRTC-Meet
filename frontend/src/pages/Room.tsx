@@ -719,6 +719,36 @@ export default function Room() {
                     {activeTab !== 'chat' ? (
                         <>
                             <div className="flex-1 overflow-y-auto space-y-[18px] mb-6 pr-1 custom-scrollbar">
+                                {/* Pending Users (Host Only) */}
+                                {isHost && pendingUsers.length > 0 && (
+                                    <div className="animate-fadeIn pb-2 border-b border-gray-100 mb-2">
+                                        <h3 className="text-[11px] text-[#f59e0b] font-bold uppercase mb-3 tracking-wider flex items-center gap-2">
+                                            <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                                            Waiting List ({pendingUsers.length})
+                                        </h3>
+                                        <div className="space-y-[14px]">
+                                            {pendingUsers.map(u => (
+                                                <div key={u.socketId} className="flex items-center justify-between bg-amber-50 p-3.5 rounded-2xl border border-amber-200/60 shadow-sm animate-slideInMsg">
+                                                    <div className="flex items-center gap-[12px]">
+                                                        <div className={`w-[36px] h-[36px] rounded-full flex items-center justify-center text-white text-[14px] font-bold shadow-sm ${getAvatarGradient(u.name)}`}>
+                                                            {u.name?.charAt(0).toUpperCase()}
+                                                        </div>
+                                                        <span className="text-[14px] font-bold text-gray-900 leading-tight">{u.name}</span>
+                                                    </div>
+                                                    <div className="flex gap-[10px]">
+                                                        <button onClick={() => admitUser(u.socketId)} className="w-[30px] h-[30px] flex justify-center items-center bg-[#10b981] hover:bg-[#059669] text-white rounded-full transition-colors shadow-sm">
+                                                            <CheckCircle size={16} strokeWidth={3} />
+                                                        </button>
+                                                        <button onClick={() => denyUser(u.socketId)} className="w-[30px] h-[30px] flex justify-center items-center bg-[#ff4b4b] hover:bg-[#e63c3c] text-white rounded-full transition-colors shadow-sm">
+                                                            <XCircle size={16} strokeWidth={3} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Self */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-[14px]">
