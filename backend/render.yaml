@@ -2,7 +2,7 @@ services:
   - type: web
     name: zoom-clone-backend
     runtime: node
-    buildCommand: npm install && npm run build && npx prisma migrate deploy
+    buildCommand: npm install && npm run build && npx prisma db push
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
