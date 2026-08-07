@@ -33,6 +33,30 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/rooms', roomRoutes);
 
+import { sendOTP } from './utils/mailer';
+app.get('/api/test-email', async (req, res) => {
+  try {
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY || '',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: { name: 'Zoom Clone test', email: process.env.SMTP_USER || 'error@example.com' },
+        to: [{ email: process.env.SMTP_USER || 'error@example.com' }],
+        subject: 'Diagnostic Test',
+        htmlContent: '<p>test</p>'
+      })
+    });
+    const text = await response.text();
+    res.send(`HTTP STATUS: ${response.status}<br>RESPONSE: ${text}`);
+  } catch (e: any) {
+    res.send("CRITICAL ERROR: " + e.message);
+  }
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
