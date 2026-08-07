@@ -36,26 +36,34 @@ async function getTransporter() {
     return transporter;
 }
 
-export const sendOTP = async (to: string, code: string) => {
-    try {
-        const mailTransporter = await getTransporter();
-        const info = await mailTransporter.sendMail({
-            from: '"Zoom Clone" <noreply@zoomclone.local>',
-            to,
-            subject: 'Your Verification Code',
-            text: `Your verification code is: ${code}`,
-            html: `<p>Your verification code is: <b>${code}</b></p><p>It will expire in 10 minutes.</p>`,
-        });
+export const sendOTP = async (to: string, code: string, maxRetries = 3): Promise<boolean> => {
+    let attempt = 1;
+    while (attempt <= maxRetries) {
+        try {
+            const mailTransporter = await getTransporter();
+            const info = await mailTransporter.sendMail({
+                from: '"Zoom Clone" <noreply@zoomclone.local>',
+                to,
+                subject: 'Your Verification Code',
+                text: `Your verification code is: ${code}`,
+                html: `<p>Your verification code is: <b>${code}</b></p><p>It will expire in 10 minutes.</p>`,
+            });
 
-        console.log(`Mail sent to ${to}. Message ID: ${info.messageId}`);
-        // Log the preview URL for Ethereal emails
-        if (nodemailer.getTestMessageUrl(info)) {
-            console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+            console.log(`Mail sent to ${to}. Message ID: ${info.messageId}`);
+            if (nodemailer.getTestMessageUrl(info)) {
+                console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+            }
+            return true;
+        } catch (error) {
+            console.error(`Attempt ${attempt} to send OTP failed:`, error);
+            if (attempt === maxRetries) {
+                console.error('All retries failed. Email could not be sent.');
+                return false;
+            }
+            // Wait 2 seconds before retrying to prevent rate limiting
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            attempt++;
         }
-
-        return true;
-    } catch (error) {
-        console.error('Failed to send OTP:', error);
-        return false;
     }
+    return false;
 };
