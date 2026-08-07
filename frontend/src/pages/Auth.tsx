@@ -125,7 +125,7 @@ export default function AuthPage() {
                             <div className="p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
                                 <Video className="w-10 h-10 text-white" />
                             </div>
-                            <h1 className="text-4xl font-black tracking-tight text-white">Zoom<span className="text-neutral-400 font-medium">Clone</span></h1>
+                            <h1 className="text-4xl font-black tracking-tight text-white">Web<span className="text-neutral-400 font-medium">RTC</span></h1>
                         </div>
 
                         <h2 className="text-5xl font-extrabold mb-6 leading-tight text-white">
@@ -189,7 +189,7 @@ export default function AuthPage() {
                             {isLogin ? 'Welcome back' : 'Create an account'}
                         </h2>
                         <p className="text-neutral-500 font-medium">
-                            {isLogin ? 'Enter your details to access your account' : 'Start your journey with ZoomClone today'}
+                            {isLogin ? 'Enter your details to access your account' : 'Start your journey with WebRTC today'}
                         </p>
                     </div>
 
