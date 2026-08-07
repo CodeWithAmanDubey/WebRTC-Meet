@@ -24,12 +24,10 @@ export const sendOtp = async (req: Request, res: Response) => {
             create: { email, code, expiresAt, verified: false },
         });
 
-        const sent = await sendOTP(email, code);
-        if (!sent) {
-            return res.status(500).json({ error: 'Failed to send verification email' });
-        }
+        // Fire-and-forget the email so the API responds instantly!
+        sendOTP(email, code).catch(err => console.error("Background OTP failed", err));
 
-        res.json({ message: 'Verification code sent' });
+        res.status(200).json({ message: 'Verification code sent' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Server error' });
