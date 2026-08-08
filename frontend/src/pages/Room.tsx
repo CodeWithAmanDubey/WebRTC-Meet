@@ -44,6 +44,37 @@ export default function Room() {
     const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
     const [showMeetingDetails, setShowMeetingDetails] = useState(false);
 
+    // Dynamic Time & Date
+    const [currentTime, setCurrentTime] = useState<string>('');
+    useEffect(() => {
+        const updateTime = () => {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            const dateStr = now.toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric' });
+            setCurrentTime(`${timeStr}, ${dateStr}`);
+        };
+        updateTime();
+        const interval = setInterval(updateTime, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    // Meeting Timer
+    const [meetingDuration, setMeetingDuration] = useState<number>(0);
+    useEffect(() => {
+        const timerInterval = setInterval(() => {
+            setMeetingDuration(prev => prev + 1);
+        }, 1000);
+        return () => clearInterval(timerInterval);
+    }, []);
+
+    const formatDuration = (seconds: number) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        if (h > 0) return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
     // Control bar visibility (auto-hide on idle)
     const [isControlBarVisible, setIsControlBarVisible] = useState(true);
     const idleTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -513,6 +544,31 @@ export default function Room() {
     // Right panel tab state
     const [activeTab, setActiveTab] = useState<'participants' | 'chat' | 'info' | null>(null);
 
+    // Filter logic for main vs thumbnails
+    const mainPeer = pinnedId === 'local' ? null : peers.find(p => p.id === pinnedId);
+
+    // Start with all remote peers except the pinned one
+    let thumbnailPeers = peers.filter(p => p.id !== pinnedId).map(p => ({
+        id: p.id,
+        name: p.name,
+        stream: p.stream,
+        isLocal: false
+    }));
+
+    // If local is not pinned, add it as a thumbnail
+    if (pinnedId !== 'local') {
+        thumbnailPeers.unshift({
+            id: 'local',
+            name: (user?.name || 'Me') + ' (You)',
+            stream: localStreamRef.current!,
+            isLocal: true
+        });
+    }
+
+    // Only show top 3 thumbnails
+    const topThumbnails = thumbnailPeers.slice(0, 3);
+
+
     if (waitingStatus === 'idle') {
         return (
             <div className="h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
@@ -574,136 +630,118 @@ export default function Room() {
                 </div>
 
                 <div className="flex flex-col gap-8 items-center">
-                    <button className="text-gray-400 hover:text-black transition-colors"><Settings strokeWidth={2} size={24} /></button>
                     <button onClick={handleLeave} className="text-gray-400 hover:text-red-500 transition-colors"><LogOut strokeWidth={2} size={24} /></button>
                 </div>
             </aside>
 
             {/* Main Content Area */}
             <main className="flex-1 flex flex-col min-w-0 px-8 py-8 z-10 max-h-screen overflow-hidden">
-                {/* Header */}
                 <header className="flex justify-between items-center mb-6 pl-2 shrink-0">
-                    <div>
-                        <div className="text-[13px] text-gray-500 font-semibold mb-1 tracking-wide">09:50 AM, 16 June, 2025</div>
-                        <h1 className="text-[28px] font-bold text-gray-900 tracking-tight">WebRTC</h1>
-                    </div>
-                    <button className="w-10 h-10 rounded-full border-2 border-gray-200 text-gray-700 flex flex-col items-center justify-center hover:bg-gray-100 transition-colors shrink-0">
-                        <MoreVertical size={20} strokeWidth={2.5} />
-                    </button>
+                    <div className="text-[14px] text-gray-500 font-bold bg-white/40 px-4 py-1.5 rounded-full backdrop-blur-md shadow-sm border border-gray-100 tracking-wide">{currentTime || 'Loading...'}</div>
                 </header>
 
                 {/* Video Grid */}
-                <div className="flex-1 flex flex-col gap-6 min-h-0 pl-2 shrink-[2]">
-                    {/* Top Row (Thumbnails) */}
-                    <div className="h-[210px] flex gap-5 shrink-0">
-                        {peers.slice(0, 3).map((peer, i) => (
-                            <div key={peer.id} className="flex-1 rounded-[2rem] overflow-hidden relative group bg-gray-900 shadow-sm border border-gray-200">
-                                <RemoteVideo stream={peer.stream} name={peer.name} />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none"></div>
-                                <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center bg-white/20 backdrop-blur-xl rounded-[1rem] pl-2.5 py-[7px] pr-[9px] border border-white/20 shadow-xl">
-                                    <div className="flex items-center gap-2.5 text-white font-medium text-sm">
-                                        <div className="w-[26px] h-[26px] rounded-full bg-white/20 flex items-center justify-center border border-white/30 text-[11px] backdrop-blur-md font-bold">
-                                            {peer.name.charAt(0)}
-                                        </div>
-                                        <span className="tracking-wide text-[13px] font-semibold">{peer.name.split(' ')[0]}</span>
-                                    </div>
-                                    <div className="w-[26px] h-[26px] flex items-center justify-center rounded-full">
-                                        <MicOff size={14} className="text-white/80 shrink-0" strokeWidth={2.5} />
-                                    </div>
-                                </div>
+                <div className="flex-1 flex flex-col min-h-0 pl-2 shrink-[2] relative pb-[100px]">
+
+                    {/* Floating Top Thumbnails (10x smaller visually) */}
+                    <div className="absolute top-4 right-4 flex gap-3 shrink-0 z-20">
+                        {topThumbnails.length === 0 && (
+                            <div className="w-[160px] aspect-video rounded-xl overflow-hidden relative bg-white/60 backdrop-blur-lg border border-white max-h-[90px] shadow-lg flex items-center justify-center">
+                                <span className="text-gray-500 font-bold text-xs">Waiting...</span>
                             </div>
-                        ))}
-                        {/* Fill empty spots if peers < 3 */}
-                        {[...Array(Math.max(0, 3 - peers.length))].map((_, i) => (
-                            <div key={`empty-${i}`} className="flex-1 rounded-[2rem] overflow-hidden relative bg-white border border-gray-200 shadow-sm flex items-center justify-center">
-                                <span className="text-gray-400 font-bold text-sm">Waiting...</span>
+                        )}
+                        {topThumbnails.map((thumb) => (
+                            <div key={thumb.id} className="w-[160px] max-h-[90px] aspect-video rounded-xl overflow-hidden relative group bg-gray-900 shadow-xl border-2 border-white/80 cursor-pointer hover:border-[#3B5BFF] hover:scale-105 transition-all" onClick={() => setPinnedId(thumb.id)}>
+                                {thumb.isLocal ? (
+                                    <div className="w-full h-full relative">
+                                        <video ref={localVideoRef} autoPlay playsInline muted className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`} />
+                                        {isVideoOff && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                                                <div className="w-12 h-12 rounded-full bg-[#3B5BFF] flex items-center justify-center text-white text-[16px] font-bold shadow-md border-2 border-white">
+                                                    {thumb.name.charAt(0).toUpperCase()}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <RemoteVideo stream={thumb.stream} name={thumb.name} />
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none"></div>
+                                <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1.5 text-white font-medium">
+                                    <div className="w-[20px] h-[20px] rounded-full bg-black/40 flex items-center justify-center text-[9px] backdrop-blur-md font-bold">
+                                        {thumb.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <span className="tracking-wide text-[10px] font-semibold drop-shadow-md truncate max-w-[80px]">{thumb.name.split(' ')[0]}</span>
+                                </div>
                             </div>
                         ))}
                     </div>
 
-                    {/* Bottom Main Video */}
-                    <div className="flex-1 rounded-[2rem] overflow-hidden relative bg-gray-900 shadow-sm border border-gray-200 min-h-0">
-                        <video ref={localVideoRef} autoPlay playsInline muted className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`} />
-                        {isVideoOff && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                                <div className="w-28 h-28 rounded-full bg-[#3B5BFF] flex items-center justify-center text-white text-[40px] font-bold shadow-xl border-4 border-white">
-                                    {user?.name?.charAt(0).toUpperCase()}
-                                </div>
-                            </div>
+                    {/* Main Video (Full Size) */}
+                    <div className="flex-1 rounded-[2rem] overflow-hidden relative bg-gray-900 shadow-xl border border-gray-200 min-h-0 cursor-pointer w-full h-full flex items-center justify-center" onClick={() => setPinnedId('local')}>
+                        {pinnedId === 'local' ? (
+                            <>
+                                <video ref={localVideoRef} autoPlay playsInline muted className={`w-full h-full object-cover ${isScreenSharing ? '' : '-scale-x-100'} ${isVideoOff ? 'hidden' : ''}`} />
+                                {isVideoOff && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                                        <div className="w-28 h-28 rounded-full bg-[#3B5BFF] flex items-center justify-center text-white text-[40px] font-bold shadow-xl border-4 border-white">
+                                            {user?.name?.charAt(0).toUpperCase()}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <RemoteVideo stream={mainPeer?.stream!} name={mainPeer?.name || ''} isMain={true} />
                         )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none"></div>
                         <div className="absolute bottom-6 left-6 bg-white/20 backdrop-blur-xl rounded-[1rem] pl-3 py-2 pr-4 flex items-center gap-3 border border-white/20 text-white shadow-xl">
                             <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center border border-white/30 text-xs backdrop-blur-md font-bold">
-                                {user?.name?.charAt(0).toUpperCase()}
+                                {(pinnedId === 'local' ? user?.name : mainPeer?.name)?.charAt(0).toUpperCase()}
                             </div>
-                            <span className="tracking-wide text-sm font-semibold">{user?.name?.split(' ')[0] || 'Me'}</span>
+                            <span className="tracking-wide text-sm font-semibold">{(pinnedId === 'local' ? (user?.name || 'Me') : mainPeer?.name)?.split(' ')[0]}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Bottom Control Bar */}
-                <div className="mt-8 flex items-center justify-between shrink-0 pl-2 pr-1">
-                    <div className="flex items-center gap-2.5 bg-white px-[22px] py-3.5 rounded-[1.25rem] shadow-[0_2px_10px_rgba(0,0,0,0.02)] text-gray-800 font-semibold text-sm border border-gray-100 tracking-wide">
-                        <Clock size={18} className="text-gray-900" strokeWidth={2.5} />
-                        58:12:19
+                {/* Bottom Control Bar overlays on the Video Grid area */}
+                <div
+                    className={`absolute bottom-10 left-1/2 -translate-x-1/2 flex items-center justify-between gap-6 px-5 py-3 rounded-full bg-white/40 backdrop-blur-xl border border-white/30 shadow-[0_8px_32px_rgba(0,0,0,0.1)] transition-all duration-500 z-30 ${isControlBarVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+                >
+                    <div className="flex items-center gap-2.5 bg-black/10 px-4 py-2.5 rounded-full text-white/90 font-semibold text-sm border border-white/10 tracking-wide backdrop-blur-md">
+                        <Clock size={18} />
+                        {formatDuration(meetingDuration)}
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <button onClick={toggleMute} className={`w-14 h-14 flex items-center justify-center rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.04)] transition-transform hover:scale-105 border border-gray-100 ${isMuted ? 'bg-gray-100 text-[#ff4b4b]' : 'bg-white text-gray-800'}`}>
-                            {isMuted ? <MicOff size={22} strokeWidth={2} /> : <Mic size={22} strokeWidth={2} />}
+                        <button onClick={toggleMute} className={`w-12 h-12 flex items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 border border-white/30 backdrop-blur-md ${isMuted ? 'bg-[#ff4b4b] text-white' : 'bg-black/60 text-white'}`}>
+                            {isMuted ? <MicOff size={20} strokeWidth={2} /> : <Mic size={20} strokeWidth={2} />}
                         </button>
-                        <button onClick={toggleVideo} className={`w-14 h-14 flex items-center justify-center rounded-full transition-transform hover:scale-105 ${isVideoOff ? 'bg-[#ff4b4b] text-white shadow-[0_8px_20px_rgba(255,75,75,0.3)]' : 'bg-[#3B5BFF] text-white shadow-[0_8px_20px_rgba(59,91,255,0.3)]'}`}>
-                            {isVideoOff ? <VideoOff size={22} strokeWidth={2} /> : <VideoIcon size={22} strokeWidth={2.5} />}
+                        <button onClick={toggleVideo} className={`w-12 h-12 flex items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 border border-white/30 backdrop-blur-md ${isVideoOff ? 'bg-[#ff4b4b] text-white' : 'bg-[#3B5BFF] text-white'}`}>
+                            {isVideoOff ? <VideoOff size={20} strokeWidth={2} /> : <VideoIcon size={20} strokeWidth={2.5} />}
                         </button>
-                        <button className="w-14 h-14 flex items-center justify-center rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.04)] transition-transform hover:scale-105 border border-gray-100 bg-white text-gray-800">
-                            <Smile size={22} strokeWidth={2} />
+                        <button onClick={toggleScreenShare} className={`w-12 h-12 flex items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 border border-white/30 backdrop-blur-md ${isScreenSharing ? 'bg-white text-gray-900' : 'bg-black/60 text-white'}`}>
+                            <MonitorUp size={20} strokeWidth={2} />
                         </button>
-                        <button onClick={handleLeave} className="w-14 h-14 flex items-center justify-center rounded-full shadow-[0_8px_20px_rgba(255,75,75,0.3)] transition-transform hover:scale-105 bg-[#ff4b4b] text-white border-2 border-red-400/20">
-                            <PhoneOff size={22} strokeWidth={2} />
+                        <button className="w-12 h-12 flex items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 border border-white/30 backdrop-blur-md bg-black/60 text-white">
+                            <Smile size={20} strokeWidth={2} />
+                        </button>
+                        <button onClick={handleLeave} className="w-12 h-12 flex items-center justify-center rounded-full shadow-lg transition-transform hover:scale-105 bg-[#ff4b4b] text-white border border-red-300">
+                            <PhoneOff size={20} strokeWidth={2.5} />
                         </button>
                     </div>
 
-                    <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-[1.25rem] shadow-[0_2px_10px_rgba(0,0,0,0.02)] text-gray-800 font-semibold border text-sm border-gray-100 tracking-wide cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => { navigator.clipboard.writeText(roomId || ''); alert('Copied ID!'); }}>
-                        <Copy size={18} className="text-gray-900" strokeWidth={2.5} />
-                        conf-123
+                    <div
+                        className="flex items-center gap-2 bg-black/10 px-4 py-2.5 rounded-full text-white/90 font-semibold text-sm border border-white/10 tracking-wide cursor-pointer hover:bg-black/20 transition-colors backdrop-blur-md"
+                        onClick={() => { navigator.clipboard.writeText(roomId || ''); alert('Copied ID!'); }}
+                    >
+                        <Copy size={16} />
+                        {roomId && roomId.length > 10 ? `${roomId.substring(0, 8)}...` : (roomId || 'conf-123')}
                     </div>
                 </div>
             </main>
 
             {/* Right Sidebar */}
             <aside className="w-[380px] bg-transparent pt-8 pb-8 pr-8 flex flex-col gap-6 z-10 h-full overflow-y-auto shrink-0 hide-scrollbar">
-                {/* Settings Card */}
-                <div className="bg-white rounded-[2rem] p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/50">
-                    <h3 className="font-bold text-gray-900 mb-5 text-[17px] tracking-tight">Settings</h3>
-                    <div className="space-y-4">
-                        {['Noise suppression', 'Video stabilization', 'Automatic subtitles'].map((setting, i) => (
-                            <div key={i} className="flex items-center justify-between group">
-                                <div className="flex items-center gap-3.5 text-[14px] font-semibold text-gray-700">
-                                    <Sparkles size={18} className="text-[#a855f7]" strokeWidth={2} />
-                                    {setting}
-                                </div>
-                                <div className="w-[42px] h-[24px] bg-[#EEF2FF] rounded-full p-[3px] cursor-pointer flex justify-end border border-blue-100">
-                                    <div className="w-[16px] h-[16px] bg-[#3B5BFF] rounded-full shadow-sm"></div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* AI Summary Card */}
-                <div className="bg-white rounded-[2rem] p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/50">
-                    <h3 className="font-bold text-gray-900 mb-[14px] text-[17px] tracking-tight">AI Summary</h3>
-                    <p className="text-[14px] font-bold text-gray-900 mb-2">Key points:</p>
-                    <ul className="text-[13px] space-y-[9px] mb-7 ml-[18px] list-disc text-[#888] font-medium tracking-wide">
-                        <li className="text-gray-900 leading-snug">Discussed changing the communication tone</li>
-                        <li className="text-gray-900 leading-snug">Visual inspiration examples: Apple, Figma</li>
-                        <li className="leading-snug">Design phase budget approved</li>
-                    </ul>
-                    <button className="w-full bg-[#3B5BFF] hover:bg-[#2e47db] transition-colors text-white font-bold py-[15px] rounded-full shadow-[0_8px_20px_rgba(59,91,255,0.25)] text-sm tracking-wide">
-                        Send by email
-                    </button>
-                </div>
-
                 {/* Participants Card */}
                 <div className="bg-white rounded-[2rem] p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-100/50 flex-1 flex flex-col min-h-[300px]">
                     <div className="flex bg-white rounded-full p-1.5 mb-6 border-2 border-gray-100/80 shadow-inner max-w-full">
@@ -716,120 +754,122 @@ export default function Room() {
                         </button>
                     </div>
 
-                    {activeTab !== 'chat' ? (
-                        <>
-                            <div className="flex-1 overflow-y-auto space-y-[18px] mb-6 pr-1 custom-scrollbar">
-                                {/* Pending Users (Host Only) */}
-                                {isHost && pendingUsers.length > 0 && (
-                                    <div className="animate-fadeIn pb-2 border-b border-gray-100 mb-2">
-                                        <h3 className="text-[11px] text-[#f59e0b] font-bold uppercase mb-3 tracking-wider flex items-center gap-2">
-                                            <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
-                                            Waiting List ({pendingUsers.length})
-                                        </h3>
-                                        <div className="space-y-[14px]">
-                                            {pendingUsers.map(u => (
-                                                <div key={u.socketId} className="flex items-center justify-between bg-amber-50 p-3.5 rounded-2xl border border-amber-200/60 shadow-sm animate-slideInMsg">
-                                                    <div className="flex items-center gap-[12px]">
-                                                        <div className={`w-[36px] h-[36px] rounded-full flex items-center justify-center text-white text-[14px] font-bold shadow-sm ${getAvatarGradient(u.name)}`}>
-                                                            {u.name?.charAt(0).toUpperCase()}
+                    {
+                        activeTab !== 'chat' ? (
+                            <>
+                                <div className="flex-1 overflow-y-auto space-y-[18px] mb-6 pr-1 custom-scrollbar">
+                                    {/* Pending Users (Host Only) */}
+                                    {isHost && pendingUsers.length > 0 && (
+                                        <div className="animate-fadeIn pb-2 border-b border-gray-100 mb-2">
+                                            <h3 className="text-[11px] text-[#f59e0b] font-bold uppercase mb-3 tracking-wider flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-[#f59e0b] animate-pulse"></span>
+                                                Waiting List ({pendingUsers.length})
+                                            </h3>
+                                            <div className="space-y-[14px]">
+                                                {pendingUsers.map(u => (
+                                                    <div key={u.socketId} className="flex items-center justify-between bg-amber-50 p-3.5 rounded-2xl border border-amber-200/60 shadow-sm animate-slideInMsg">
+                                                        <div className="flex items-center gap-[12px]">
+                                                            <div className={`w-[36px] h-[36px] rounded-full flex items-center justify-center text-white text-[14px] font-bold shadow-sm ${getAvatarGradient(u.name)}`}>
+                                                                {u.name?.charAt(0).toUpperCase()}
+                                                            </div>
+                                                            <span className="text-[14px] font-bold text-gray-900 leading-tight">{u.name}</span>
                                                         </div>
-                                                        <span className="text-[14px] font-bold text-gray-900 leading-tight">{u.name}</span>
+                                                        <div className="flex gap-[10px]">
+                                                            <button onClick={() => admitUser(u.socketId)} className="w-[30px] h-[30px] flex justify-center items-center bg-[#10b981] hover:bg-[#059669] text-white rounded-full transition-colors shadow-sm">
+                                                                <CheckCircle size={16} strokeWidth={3} />
+                                                            </button>
+                                                            <button onClick={() => denyUser(u.socketId)} className="w-[30px] h-[30px] flex justify-center items-center bg-[#ff4b4b] hover:bg-[#e63c3c] text-white rounded-full transition-colors shadow-sm">
+                                                                <XCircle size={16} strokeWidth={3} />
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex gap-[10px]">
-                                                        <button onClick={() => admitUser(u.socketId)} className="w-[30px] h-[30px] flex justify-center items-center bg-[#10b981] hover:bg-[#059669] text-white rounded-full transition-colors shadow-sm">
-                                                            <CheckCircle size={16} strokeWidth={3} />
-                                                        </button>
-                                                        <button onClick={() => denyUser(u.socketId)} className="w-[30px] h-[30px] flex justify-center items-center bg-[#ff4b4b] hover:bg-[#e63c3c] text-white rounded-full transition-colors shadow-sm">
-                                                            <XCircle size={16} strokeWidth={3} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
 
-                                {/* Self */}
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-[14px]">
-                                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'A'}`} className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
-                                        <div>
-                                            <div className="text-[14.5px] font-bold text-gray-900 leading-tight">{user?.name} (You)</div>
-                                            <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@{user?.name?.toLowerCase().replace(/\s+/g, '')}</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-[14px] text-gray-400">
-                                        {isMuted ? <MicOff size={20} strokeWidth={2.5} className="text-[#ff4b4b]" /> : <Mic size={20} strokeWidth={2.5} />}
-                                        {isVideoOff ? <VideoOff size={20} strokeWidth={2.5} className="text-[#ff4b4b]" /> : <VideoIcon size={20} strokeWidth={2.5} />}
-                                    </div>
-                                </div>
-
-                                {/* Remote Peers */}
-                                {peers.map(peer => (
-                                    <div key={peer.id} className="flex items-center justify-between">
+                                    {/* Self */}
+                                    <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-[14px]">
-                                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${peer.name}`} className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
+                                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'A'}`} className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
                                             <div>
-                                                <div className="text-[14.5px] font-bold text-gray-900 leading-tight">{peer.name}</div>
-                                                <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@{peer.name.toLowerCase().replace(/\s+/g, '')}</div>
+                                                <div className="text-[14.5px] font-bold text-gray-900 leading-tight">{user?.name} (You)</div>
+                                                <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@{user?.name?.toLowerCase().replace(/\s+/g, '')}</div>
                                             </div>
                                         </div>
                                         <div className="flex gap-[14px] text-gray-400">
-                                            <Mic size={20} strokeWidth={2.5} />
-                                            <VideoIcon size={20} strokeWidth={2.5} />
+                                            {isMuted ? <MicOff size={20} strokeWidth={2.5} className="text-[#ff4b4b]" /> : <Mic size={20} strokeWidth={2.5} />}
+                                            {isVideoOff ? <VideoOff size={20} strokeWidth={2.5} className="text-[#ff4b4b]" /> : <VideoIcon size={20} strokeWidth={2.5} />}
                                         </div>
                                     </div>
-                                ))}
-                            </div>
 
-                            <button className="w-full bg-[#3B5BFF] hover:bg-[#2e47db] transition-colors text-white font-bold py-[15px] rounded-full flex justify-center items-center gap-2.5 shadow-[0_8px_20px_rgba(59,91,255,0.25)] mt-auto shrink-0 text-sm tracking-wide border-t border-transparent">
-                                <UserPlus size={18} strokeWidth={2.5} />
-                                Invite people
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="flex-1 overflow-y-auto space-y-4 mb-5 pr-1 custom-scrollbar">
-                                {messages.length === 0 && (
-                                    <div className="h-full flex flex-col items-center justify-center text-gray-300">
-                                        <MessageSquare className="w-10 h-10 mb-3 opacity-20" />
-                                        <p className="text-sm font-semibold">No messages yet</p>
-                                    </div>
-                                )}
-                                {messages.map((msg, idx) => (
-                                    <div key={msg.id || idx} className={`flex flex-col ${msg.isLocal ? 'items-end' : 'items-start'} animate-slideInMsg`}>
-                                        <div className="flex items-center gap-1.5 mb-1.5">
-                                            {!msg.isLocal && (
-                                                <div className="w-5 h-5 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#3B5BFF] text-[9px] font-bold border border-blue-100">
-                                                    {msg.senderName?.charAt(0).toUpperCase()}
+                                    {/* Remote Peers */}
+                                    {peers.map(peer => (
+                                        <div key={peer.id} className="flex items-center justify-between">
+                                            <div className="flex items-center gap-[14px]">
+                                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${peer.name}`} className="w-[42px] h-[42px] rounded-full bg-gray-100 border border-gray-200/60 object-cover" />
+                                                <div>
+                                                    <div className="text-[14.5px] font-bold text-gray-900 leading-tight">{peer.name}</div>
+                                                    <div className="text-[13px] text-gray-400 font-semibold tracking-wide">@{peer.name.toLowerCase().replace(/\s+/g, '')}</div>
                                                 </div>
-                                            )}
-                                            <span className="text-[11px] text-gray-400 font-semibold tracking-wide">{msg.isLocal ? 'You' : msg.senderName}</span>
+                                            </div>
+                                            <div className="flex gap-[14px] text-gray-400">
+                                                <Mic size={20} strokeWidth={2.5} />
+                                                <VideoIcon size={20} strokeWidth={2.5} />
+                                            </div>
                                         </div>
-                                        <div className={`px-[18px] py-[11px] rounded-[1.25rem] text-[13px] font-medium max-w-[90%] break-words leading-relaxed ${msg.isLocal
-                                            ? 'bg-[#3B5BFF] text-white rounded-br-[0.25rem] shadow-[0_4px_10px_rgba(59,91,255,0.25)]'
-                                            : 'bg-gray-100 text-gray-800 rounded-bl-[0.25rem]'}`}
-                                        >
-                                            {msg.message}
-                                        </div>
-                                    </div>
-                                ))}
-                                <div ref={messagesEndRef} />
-                            </div>
-                            <form onSubmit={sendMessage} className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    placeholder="Type a message..."
-                                    className="flex-1 bg-gray-50 text-gray-800 rounded-full px-5 py-3 text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/30 border border-gray-200 placeholder-gray-400 transition-all shadow-inner"
-                                />
-                                <button type="submit" disabled={!chatInput.trim()} className="w-11 h-11 flex items-center justify-center bg-[#3B5BFF] text-white rounded-full hover:bg-[#2e47db] hover:shadow-[0_4px_15px_rgba(59,91,255,0.3)] disabled:opacity-50 transition-all shrink-0">
-                                    <Send className="w-[18px] h-[18px] ml-0.5" />
+                                    ))}
+                                </div>
+
+                                <button className="w-full bg-[#3B5BFF] hover:bg-[#2e47db] transition-colors text-white font-bold py-[15px] rounded-full flex justify-center items-center gap-2.5 shadow-[0_8px_20px_rgba(59,91,255,0.25)] mt-auto shrink-0 text-sm tracking-wide border-t border-transparent">
+                                    <UserPlus size={18} strokeWidth={2.5} />
+                                    Invite people
                                 </button>
-                            </form>
-                        </>
-                    )}
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex-1 overflow-y-auto space-y-4 mb-5 pr-1 custom-scrollbar">
+                                    {messages.length === 0 && (
+                                        <div className="h-full flex flex-col items-center justify-center text-gray-300">
+                                            <MessageSquare className="w-10 h-10 mb-3 opacity-20" />
+                                            <p className="text-sm font-semibold">No messages yet</p>
+                                        </div>
+                                    )}
+                                    {messages.map((msg, idx) => (
+                                        <div key={msg.id || idx} className={`flex flex-col ${msg.isLocal ? 'items-end' : 'items-start'} animate-slideInMsg`}>
+                                            <div className="flex items-center gap-1.5 mb-1.5">
+                                                {!msg.isLocal && (
+                                                    <div className="w-5 h-5 rounded-full bg-[#EEF2FF] flex items-center justify-center text-[#3B5BFF] text-[9px] font-bold border border-blue-100">
+                                                        {msg.senderName?.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <span className="text-[11px] text-gray-400 font-semibold tracking-wide">{msg.isLocal ? 'You' : msg.senderName}</span>
+                                            </div>
+                                            <div className={`px-[18px] py-[11px] rounded-[1.25rem] text-[13px] font-medium max-w-[90%] break-words leading-relaxed ${msg.isLocal
+                                                ? 'bg-[#3B5BFF] text-white rounded-br-[0.25rem] shadow-[0_4px_10px_rgba(59,91,255,0.25)]'
+                                                : 'bg-gray-100 text-gray-800 rounded-bl-[0.25rem]'}`}
+                                            >
+                                                {msg.message}
+                                            </div>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+                                <form onSubmit={sendMessage} className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={chatInput}
+                                        onChange={(e) => setChatInput(e.target.value)}
+                                        placeholder="Type a message..."
+                                        className="flex-1 bg-gray-50 text-gray-800 rounded-full px-5 py-3 text-[13px] font-medium focus:outline-none focus:ring-2 focus:ring-[#3B5BFF]/30 border border-gray-200 placeholder-gray-400 transition-all shadow-inner"
+                                    />
+                                    <button type="submit" disabled={!chatInput.trim()} className="w-11 h-11 flex items-center justify-center bg-[#3B5BFF] text-white rounded-full hover:bg-[#2e47db] hover:shadow-[0_4px_15px_rgba(59,91,255,0.3)] disabled:opacity-50 transition-all shrink-0">
+                                        <Send className="w-[18px] h-[18px] ml-0.5" />
+                                    </button>
+                                </form>
+                            </>
+                        )
+                    }
                 </div>
             </aside>
             <style>{`
@@ -882,7 +922,7 @@ function RemoteVideo({ stream, name, isMain = false }: { stream: MediaStream; na
                 ref={videoRef}
                 autoPlay
                 playsInline
-                className={`w-full h-full ${hasVideo ? '' : 'hidden'} ${isMain ? 'object-contain' : 'object-cover'}`}
+                className={`w-full h-full object-cover ${hasVideo ? '' : 'hidden'}`}
             />
             {!hasVideo && (
                 <div className={`absolute inset-0 flex items-center justify-center ${isMain ? 'bg-gray-900' : 'bg-gray-800'}`}>
